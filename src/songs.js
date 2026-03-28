@@ -53,7 +53,7 @@ export const SONGS = [
   {
     title: "こたえて (Answer Me)",
     artist: "imie",
-    badge: "Grand Prize",
+    // Grand Prize winner — no badge shown (Tufte: data-ink ratio)
     url: "https://piapro.jp/t/6W2N/20251215164617",
     video: {
       // Video analysis IDs will be populated when published at

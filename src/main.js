@@ -1358,14 +1358,12 @@ function buildSongCards() {
     // Set accent color as CSS custom property for border glow
     const accent = song.theme?.accent ?? 0x39c5bb;
     const r = (accent >> 16) & 0xff, g = (accent >> 8) & 0xff, b = accent & 0xff;
-    card.style.setProperty("--card-accent", `rgba(${r},${g},${b},0.5)`);
+    card.style.setProperty("--card-accent", `rgba(${r},${g},${b},0.6)`);
     card.style.setProperty("--card-i", i);
-    const badgeText = song.badge ? t("badge.grand-prize") : "";
     card.innerHTML = `
-      ${badgeText ? `<div class="song-card-badge">${badgeText}</div>` : ""}
       <div class="song-card-title">${song.title}</div>
       <div class="song-card-desc">${t(`song.desc.${i}`)}</div>
-      <div class="song-card-artist">${song.artist} feat. 初音ミク</div>
+      <div class="song-card-artist">${song.artist}</div>
     `;
     card.addEventListener("click", () => loadSong(i));
     card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); loadSong(i); } });

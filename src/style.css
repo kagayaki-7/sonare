@@ -138,14 +138,13 @@ html, body {
   align-items: center;
   justify-content: safe center;
   background:
-    radial-gradient(ellipse 80% 60% at 30% 70%, rgba(57,197,187,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 70% 40%, rgba(100,140,200,0.05) 0%, transparent 55%),
-    radial-gradient(ellipse at center, rgba(5,13,24,0.85) 0%, rgba(2,5,12,0.92) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+    radial-gradient(ellipse 60% 50% at 50% 75%, rgba(57,197,187,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at center, rgba(5,13,24,0.92) 0%, rgba(2,5,12,0.97) 100%);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
   z-index: 90;
   overflow-y: auto;
-  padding: 2rem 0 3rem;
+  padding: 3rem 0 3rem;
 }
 
 /* Animated water ripple background */
@@ -168,134 +167,117 @@ html, body {
   100% { transform: translate(8px, -3px) scale(0.98); opacity: 0.8; }
 }
 
-/* App title */
+/* App title — Tufte: clear hierarchy through weight and spacing, not decoration */
 #song-select .song-select-title {
   font-family: "Zen Maru Gothic", "Hiragino Kaku Gothic Pro", sans-serif;
-  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-size: clamp(1.6rem, 4.5vw, 2.6rem);
   font-weight: 300;
-  letter-spacing: 0.25em;
-  margin-bottom: 0.3rem;
+  letter-spacing: 0.3em;
+  margin-bottom: 0.6rem;
   position: relative;
   z-index: 1;
-  background: linear-gradient(135deg, #39c5bb 0%, #8ac5e0 40%, #e991cf 70%, #ffd700 100%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: title-shimmer 6s ease-in-out infinite;
-}
-
-@keyframes title-shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  color: rgba(255,255,255,0.88);
+  text-shadow: 0 0 40px rgba(57,197,187,0.15);
 }
 
 #song-select .song-select-prompt {
-  font-family: "Zen Maru Gothic", "Hiragino Kaku Gothic Pro", sans-serif;
-  font-size: clamp(0.85rem, 2vw, 1.05rem);
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  color: rgba(57,197,187,0.7);
-  margin-bottom: 0.3rem;
-  position: relative;
-  z-index: 1;
-}
-
-#song-select .song-select-subtitle {
-  font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+  font-family: "Inter", "Zen Maru Gothic", sans-serif;
+  font-size: clamp(0.72rem, 1.6vw, 0.88rem);
   font-weight: 300;
-  letter-spacing: 0.15em;
-  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.32);
   margin-bottom: 2.5rem;
   position: relative;
   z-index: 1;
 }
 
+#song-select .song-select-subtitle {
+  display: none;
+}
+
 #song-list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  max-width: 520px;
-  width: 90%;
-  padding: 0 1rem 1rem;
+  gap: 0;
+  max-width: 480px;
+  width: 88%;
+  padding: 0 0 1.5rem;
   position: relative;
   z-index: 1;
 }
 
-/* Glass song cards */
+/* Tufte song cards — minimal chrome, content-first, left accent border only */
 .song-card {
   --card-accent: rgba(57,197,187,0.5);
-  padding: clamp(0.8rem, 2vh, 1.2rem) clamp(0.9rem, 2vw, 1.5rem);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: clamp(8px, 1.5vw, 14px);
+  padding: clamp(0.9rem, 2.2vh, 1.3rem) clamp(1rem, 2.5vw, 1.6rem);
+  padding-left: clamp(1.2rem, 3vw, 1.8rem);
+  border: none;
+  border-left: 2px solid rgba(255,255,255,0.06);
+  border-radius: 0;
   cursor: pointer;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
-  background: rgba(255,255,255,0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 0 0 0 var(--card-accent), inset 0 1px 0 rgba(255,255,255,0.05);
-  /* Stagger entrance animation */
+  transition: border-color 0.4s ease, background 0.4s ease, padding-left 0.4s ease;
+  background: transparent;
+  /* Stagger entrance */
   opacity: 0;
-  transform: translateY(20px);
-  animation: card-emerge 0.5s ease-out forwards;
-  animation-delay: calc(var(--card-i, 0) * 100ms);
+  transform: translateY(12px);
+  animation: card-emerge 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--card-i, 0) * 80ms + 200ms);
+}
+
+/* Subtle separator between cards — Tufte thin rule */
+.song-card + .song-card {
+  border-top: 1px solid rgba(255,255,255,0.04);
 }
 
 @keyframes card-emerge {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .song-card:hover {
-  border-color: var(--card-accent);
-  background: rgba(255,255,255,0.07);
-  transform: translateY(-4px);
-  box-shadow: 0 0 18px -4px var(--card-accent), inset 0 1px 0 rgba(255,255,255,0.08);
+  border-left-color: var(--card-accent);
+  background: rgba(255,255,255,0.03);
+  padding-left: clamp(1.4rem, 3.5vw, 2.1rem);
 }
 
 .song-card:focus-visible {
-  outline: 2px solid var(--card-accent);
-  outline-offset: 2px;
-  border-color: var(--card-accent);
-  background: rgba(255,255,255,0.07);
-  animation: card-focus-pulse 2s ease-in-out infinite;
-}
-
-@keyframes card-focus-pulse {
-  0%, 100% { box-shadow: 0 0 12px -4px var(--card-accent); }
-  50% { box-shadow: 0 0 22px -2px var(--card-accent); }
+  outline: none;
+  border-left: 2px solid var(--card-accent);
+  background: rgba(255,255,255,0.03);
 }
 
 .song-card .song-card-title {
-  font-size: clamp(0.85rem, 2.2vw, 1.1rem);
-  font-weight: 500;
-  margin-bottom: 0.2rem;
+  font-family: "Zen Maru Gothic", "Hiragino Kaku Gothic Pro", sans-serif;
+  font-size: clamp(0.88rem, 2.2vw, 1.08rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 0.3rem;
+  line-height: 1.4;
 }
 
 .song-card .song-card-desc {
-  font-size: clamp(0.55rem, 1.2vw, 0.7rem);
+  font-family: "Inter", sans-serif;
+  font-size: clamp(0.6rem, 1.2vw, 0.72rem);
   font-weight: 300;
-  color: rgba(255,255,255,0.35);
-  letter-spacing: 0.06em;
-  margin-bottom: 0.4rem;
+  color: rgba(255,255,255,0.28);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
   font-style: italic;
 }
 
 .song-card .song-card-artist {
-  font-size: clamp(0.65rem, 1.5vw, 0.8rem);
-  color: rgba(255,255,255,0.6);
+  font-family: "Inter", "Zen Maru Gothic", sans-serif;
+  font-size: clamp(0.62rem, 1.4vw, 0.76rem);
+  font-weight: 300;
+  color: rgba(255,255,255,0.42);
+  letter-spacing: 0.02em;
 }
 
+/* Badge hidden — Tufte: maximize data-ink ratio */
 .song-card .song-card-badge {
-  display: inline-block;
-  font-size: 0.65rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  color: #000;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.05em;
+  display: none;
 }
 
 /* HUD */
@@ -1405,8 +1387,7 @@ body[data-subtitles="off"] .subtitle-english {
 }
 
 @media (max-width: 380px) {
-  .song-card { padding: 0.9rem 1rem; }
-  #song-list { gap: 0.6rem; }
+  .song-card { padding: 0.8rem 0.9rem 0.8rem 1.1rem; }
 }
 
 /* ═══════════════════════════════════════
@@ -1438,15 +1419,9 @@ body[data-subtitles="off"] .subtitle-english {
 }
 
 /* Focus-visible ring for keyboard navigation */
-#controls button:focus-visible,
-.song-card:focus-visible {
+#controls button:focus-visible {
   outline: 2px solid rgba(57,197,187,0.8);
   outline-offset: 2px;
-}
-
-.song-card:focus-visible {
-  border-color: var(--card-accent, rgba(57,197,187,0.5));
-  background: rgba(255,255,255,0.07);
 }
 
 /* Skip to content link — visible on focus for keyboard users */
@@ -1869,8 +1844,8 @@ body[data-subtitles="off"] .subtitle-english {
   #phrase-display .char.active { color: #fff; text-shadow: none; filter: none; }
   #phrase-display .char.sung { color: rgba(57,197,187,1); text-shadow: none; }
   #hud-top, #hud-bottom { background: rgba(0,0,0,0.85); }
-  .song-card { border-color: rgba(255,255,255,0.4); }
-  .song-card:hover { border-color: #39c5bb; background: rgba(57,197,187,0.2); }
+  .song-card { border-left-color: rgba(255,255,255,0.4); }
+  .song-card:hover { border-left-color: #39c5bb; background: rgba(57,197,187,0.2); }
   #controls button { border-color: rgba(255,255,255,0.5); }
 }
 
