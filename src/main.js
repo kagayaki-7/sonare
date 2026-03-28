@@ -549,14 +549,12 @@ function onTimeUpdate(position) {
       updateLyricMood(va.v, va.a);
     }
 
-    // ── Vocal amplitude -> orb breath + lyric glow ──
+    // ── Vocal amplitude -> orb breath (scene only) ──
+    // NOTE: --glow-radius is set by updateLyricMood() with smoothing.
+    // Do NOT set it here — that caused two systems fighting over the same property.
     const vocalAmp = player.getVocalAmplitude?.(position);
     if (vocalAmp !== undefined && vocalAmp !== null) {
       if (scene) scene.setVocalAmplitude(vocalAmp);
-      if (phraseDisplay) {
-        const vocalGlow = 12 + vocalAmp * 60;
-        phraseDisplay.style.setProperty("--glow-radius", `${vocalGlow.toFixed(0)}px`);
-      }
     }
 
     // ── Phrase display (DOM-based for crisp text) ──

@@ -1768,19 +1768,19 @@ export class SonareScene {
     // Apply mood to renderer (with semantic scene effects layered on)
     // B2: When lyrics are active, dim the scene so lyrics are primary
     const lyricDim = this._lyricActiveMix;
-    const exposureDim = 1.0 - lyricDim * 0.3; // exposure drops to 0.7 when lyrics active
-    const bloomDim = 1.0 - lyricDim * 0.3;    // bloom drops 30%
+    const exposureDim = 1.0 - lyricDim * 0.12; // exposure drops to 0.88 when lyrics active (subtle)
+    const bloomDim = 1.0 - lyricDim * 0.15;    // bloom drops 15% (keep the lake alive)
     this.renderer.toneMappingExposure = smoothDamp(this.renderer.toneMappingExposure, (mp.exposure + this._sceneFxExposure) * exposureDim, 2.0, delta);
     this.scene.fog.density = smoothDamp(this.scene.fog.density, mp.fogDensity + this._sceneFxFog, 2.0, delta);
     this.bloomPass.strength = smoothDamp(this.bloomPass.strength, (mp.bloomStrength * (this._songBloomBase / 0.5) + this.beatIntensity * 0.1 + this._chordFlash * 0.08 + this._sceneFxBloom) * bloomDim, 3.0, delta);
     this.bloomPass.radius = smoothDamp(this.bloomPass.radius, mp.bloomRadius, 2.0, delta);
 
-    // Memory fog reduction + section modifier
-    this.scene.fog.density = Math.max(0.001, this.scene.fog.density - this.memoryState.wonder * 0.002 * delta + this._sectionFogMod * delta);
+    // Memory fog reduction + section modifier (clamped to prevent runaway)
+    const fogMod = (-this.memoryState.wonder * 0.001 + this._sectionFogMod) * delta;
+    this.scene.fog.density = Math.max(0.002, Math.min(0.012, this.scene.fog.density + fogMod));
     if (this._breathingSpace) {
-      // B3: During breathing space, drop bloom to minimum — genuinely peaceful
-      this.bloomPass.strength = smoothDamp(this.bloomPass.strength, 0.15, 3.0, delta);
-      this.scene.fog.density *= 0.7; // clearer water during instrumental breaks
+      // B3: During breathing space, gently reduce bloom — don't kill it
+      this.bloomPass.strength = smoothDamp(this.bloomPass.strength, 0.25, 1.0, delta);
     }
 
     // ── Harmonic mode temperature shift ──
@@ -1798,22 +1798,7 @@ export class SonareScene {
       this.stars.rotation.y = t * (mp.starSpeed + this._sectionStarSpeed + this._climaxIntensity * 0.008 + this._lyricDensity * 0.002);
       this.stars.rotation.x = Math.sin(t * 0.003) * 0.05;
 
-      if (Math.abs(hm) > 0.02) {
-        const starColors = this.stars.geometry.getAttribute("color");
-        const tintColor = hm > 0 ? this._tmpWarmTint : this._tmpCoolTint;
-        const tintStrength = Math.abs(hm) * 0.04;
-        for (let i = 0; i < starColors.count; i++) {
-          const r = starColors.getX(i);
-          const g = starColors.getY(i);
-          const b = starColors.getZ(i);
-          starColors.setXYZ(i,
-            r + (tintColor.r - r) * tintStrength,
-            g + (tintColor.g - g) * tintStrength,
-            b + (tintColor.b - b) * tintStrength
-          );
-        }
-        starColors.needsUpdate = true;
-      }
+      // Harmonic tinting handled via uniform — no per-frame star color mutation
     }
 
     // ── Song progression gradient — smoothly shift nebula hue across song duration ──
@@ -1828,15 +1813,7 @@ export class SonareScene {
     this._climaxIntensity = smoothDamp(this._climaxIntensity, climaxTarget, 2.5, delta);
     this._climaxBloomSurge = this._climaxIntensity * 0.4;
     this._climaxParticleBoost = this._climaxIntensity * 0.5;
-    // During climax, brighten stars subtly
-    if (this._climaxIntensity > 0.05 && this.stars) {
-      const starSizes = this.stars.geometry.getAttribute("size");
-      const boostTarget = 1 + this._climaxIntensity * 0.3;
-      for (let i = 0; i < Math.min(starSizes.count, 100); i++) {
-        starSizes.array[i] += (starSizes.array[i] * boostTarget - starSizes.array[i]) * 0.02;
-      }
-      starSizes.needsUpdate = true;
-    }
+    // Climax star brightness handled via bloom surge — no per-frame size mutation
 
     // ── Lyric density — smooth toward target, affect particle rate and orbit speed ──
     this._lyricDensity = smoothDamp(this._lyricDensity, this._lyricDensityTarget, 2.0, delta);
@@ -1872,11 +1849,11 @@ export class SonareScene {
       ).normalize();
       wu.uMoonDir.value.copy(this._moonDir);
 
-      // B2: Reduce water surface opacity when lyrics are active
+      // B2: Slightly soften water when lyrics active (keep it visually alive)
       this.waterSurface.material.opacity = smoothDamp(
         this.waterSurface.material.opacity ?? 1.0,
-        this._lyricActive ? 0.6 : 1.0,
-        4.0, delta
+        this._lyricActive ? 0.85 : 1.0,
+        2.0, delta
       );
     }
 
