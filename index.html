@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description" content="Sonare — Lyrics become ripples on a living lake. A lyric visualization for the Hatsune Miku Magical Mirai 2026 Programming Contest." />
+  <meta name="theme-color" content="#050d18" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta property="og:title" content="Sonare — 湖のソナーレ — Magical Mirai 2026" />
+  <meta property="og:description" content="Each lyric drops into the lake — ripples of sound painting a living reflection. A lyric app for the Magical Mirai 2026 Programming Contest." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <title>Sonare — 湖のソナーレ — Magical Mirai 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;700&family=Inter:wght@200;300;400;500&display=swap" as="style" />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;700&family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet" />
+  <link rel="modulepreload" href="/src/main.js" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body data-subtitles="on">
+  <a href="#phrase-display" class="skip-to-content">Skip to lyrics</a>
+  <div id="canvas-container" role="img" aria-label="3D lyric visualization"></div>
+
+  <!-- UI Overlay -->
+  <div id="overlay">
+    <!-- Loading screen -->
+    <div id="loading">
+      <div class="loading-content">
+        <h1 class="title" data-i18n="loading.title">湖のソナーレ</h1>
+        <p class="subtitle" data-i18n="loading.subtitle">ミクの歌声が湖を満たす</p>
+        <div class="loader">
+          <div class="loader-bar"><div class="loader-fill"></div></div>
+          <p id="loading-status" data-i18n="loading.status.init">初期化中...</p>
+          <button id="retry-btn" data-i18n="loading.retry" aria-label="Retry loading">再試行</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Song selector (shown after load) -->
+    <div id="song-select" class="hidden" role="dialog" aria-modal="true" aria-label="Song selector">
+      <div class="song-select-title" aria-hidden="true" data-i18n="select.title">湖のソナーレ</div>
+      <div class="song-select-prompt" data-i18n="select.prompt">ミクの歌を選んでください</div>
+      <div class="song-select-subtitle" data-i18n="select.subtitle">彼女の歌を選んで</div>
+      <div id="song-list"></div>
+    </div>
+
+    <!-- Now playing HUD -->
+    <div id="hud" class="hidden" role="main" aria-label="Now playing">
+      <div id="hud-top">
+        <div id="song-info">
+          <div id="song-title"></div>
+          <div id="song-artist"></div>
+        </div>
+      </div>
+      <div id="hud-bottom">
+        <div id="progress-container">
+          <div id="progress-bar" role="slider" aria-label="Playback progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
+          <div id="time-display">0:00 / 0:00</div>
+        </div>
+        <div id="controls" role="toolbar" aria-label="Playback controls">
+          <button id="btn-prev" data-i18n-title="controls.prev" data-i18n-aria="controls.prev" title="前の曲" aria-label="前の曲">⏮</button>
+          <button id="btn-play" data-i18n-title="controls.play" data-i18n-aria="controls.play" title="再生" aria-label="再生">▶</button>
+          <button id="btn-next" data-i18n-title="controls.next" data-i18n-aria="controls.next" title="次の曲" aria-label="次の曲">⏭</button>
+          <button id="btn-fullscreen" data-i18n-title="controls.fullscreen" data-i18n-aria="controls.fullscreen" title="全画面" aria-label="全画面">⛶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intro title card -->
+  <div id="intro-card">
+    <div class="intro-card-inner">
+      <div id="intro-song-title"></div>
+      <div id="intro-song-artist"></div>
+    </div>
+  </div>
+
+  <!-- Outro card -->
+  <div id="outro-card">
+    <div class="outro-card-inner">
+      <div id="outro-message" data-i18n="outro.message">ミクの歌が湖に刻まれた</div>
+      <div id="outro-stats"></div>
+    </div>
+  </div>
+
+  <!-- Phrase display (for current phrase text, rendered by CSS) -->
+  <div id="phrase-display" class="hidden mood-serene"></div>
+  <div id="subtitle-en" class="subtitle-english"></div>
+  <div id="lyric-announce" aria-live="polite" class="sr-only"></div>
+  <div id="section-announce" aria-live="polite" class="sr-only"></div>
+  <div id="rhythm-announce" aria-live="assertive" class="sr-only"></div>
+  <div id="semantic-tooltip"></div>
+
+  <!-- Emotional journey — visual gradient showing the song's accumulated emotional arc -->
+  <div id="emotional-journey">
+    <div id="journey-fill"></div>
+  </div>
+
+  <!-- Procedural seed display (generative art identity) -->
+  <div id="seed-display" title="Click to copy shareable link"></div>
+
+  <!-- Language toggle -->
+  <button id="lang-toggle" aria-label="言語切替">
+    <span class="lang-ja active">JA</span>
+    <span class="lang-divider">/</span>
+    <span class="lang-en">EN</span>
+  </button>
+
+  <!-- TextAlive attribution (required by license) -->
+  <div id="attribution" data-i18n-html="attribution">
+    <a href="https://developer.textalive.jp/" target="_blank" rel="noopener">TextAlive App API</a> を使用
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+{
+  "title": "Sonare — 湖のソナーレ — Magical Mirai 2026",
+  "overallTarget": 10,
+  "rubric": {
+    "dimensions": [
+      {
+        "name": "Tufte Readability",
+        "principle": "Maximize data-ink ratio. Lyrics are the data — every visual element must serve readability or be removed. Quiet moments must be quiet. Whitespace is information.",
+        "score": 9,
+        "target": 10,
+        "gaps": [
+          "15+ visual systems compete for attention during climactic moments",
+          "No visual hierarchy — 3D effects and lyrics fight for primacy",
+          "HUD elements clutter the frame",
+          "Every moment has effects — no negative space in the visual timeline"
+        ]
+      },
+      {
+        "name": "Sakurai Enjoyment Coherence",
+        "principle": "ONE clear concept executed with conviction. Every mechanic must serve the central metaphor. If a feature doesn't make the core better, cut it. The player should understand the concept in 5 seconds.",
+        "score": 9,
+        "target": 10,
+        "gaps": [
+          "No connection to 'Sonare of the Lake' theme whatsoever",
+          "Concept is 'stellar constellation' — wrong metaphor entirely",
+          "15+ systems with no unifying visual language",
+          "A judge watching for 10 seconds sees 'fancy particles with lyrics' not a clear concept",
+          "Feature soup — rhythm tap + semantic touch + star map + mood pipeline all feel disconnected"
+        ]
+      },
+      {
+        "name": "Theme Alignment (湖のソナーレ)",
+        "principle": "The 2024 Grand Prize explicitly tied to 'FAN FUN TRIP' with a car navigation metaphor. We need the same level of thematic resonance with 'Sonare of the Lake' — music resonating across water, light reflecting off a grand lake, Hamamatsu as birthplace of sound.",
+        "score": 9,
+        "target": 10,
+        "gaps": [
+          "Project is space/stars themed — zero lake/water connection",
+          "Name is 'Stellar Verses' — wrong",
+          "Color palette is deep space, not water",
+          "No water surface, no ripples-as-metaphor, no reflection",
+          "No reference to Hamamatsu/sound origins"
+        ]
+      },
+      {
+        "name": "Technical Submission Match",
+        "principle": "Meets all contest technical requirements, runs flawlessly, compelling README with deployed demo.",
+        "score": 9,
+        "target": 10,
+        "gaps": [
+          "No README with concept explanation + screenshots",
+          "No deployed demo URL",
+          "No demo video recording",
+          "Never tested on real mobile device"
+        ]
+      }
+    ]
+  },
+  "criteria": [
+    {
+      "name": "Aesthetic Quality (歌詞の演出)",
+      "weight": 0.35,
+      "target": 10,
+      "subcriteria": [
+        { "name": "Lyric sync precision", "score": 10, "target": 10, "notes": "Char-level timing, anticipation pre-glow, downbeat emphasis, held note pulse" },
+        { "name": "Typography quality", "score": 10, "target": 10, "notes": "Continuous V/A, chorus wave, crossfade, semantic coloring — needs water-themed treatment" },
+        { "name": "Visual storytelling", "score": 9, "target": 10, "notes": "Water surface shader, reflection map, ripple beats, lake emergence intro, song progression gradient" },
+        { "name": "Mood/energy arc", "score": 10, "target": 10, "notes": "V/A pipeline, breathing space, climax detection — remap to water calm/storm" },
+        { "name": "Color palette cohesion", "score": 9, "target": 10, "notes": "6 lake palettes (twilight/misty/sparkling/stormy/cave/neon), harmonic temperature, water-blue base" },
+        { "name": "Polish/refinement", "score": 9, "target": 10, "notes": "Effect cap, lyric-first hierarchy, auto-hide HUD, negative space, water-coherent mood states" }
+      ]
+    },
+    {
+      "name": "Innovative Technology (新規性)",
+      "weight": 0.35,
+      "target": 10,
+      "subcriteria": [
+        { "name": "Core concept originality", "score": 9, "target": 10, "notes": "Lake of voices — lyrics drop into water creating ripples, semantic words become lasting reflections, each song fills a unique lake" },
+        { "name": "Semantic lyric understanding", "score": 10, "target": 10, "notes": "270+ words, dense-phrase, semantic touch — reframe as 'deep water' vs 'surface'" },
+        { "name": "Procedural seed system", "score": 10, "target": 10, "notes": "Seed drives unique ripple patterns — each viewer's lake is different" },
+        { "name": "Mood-responsive typography", "score": 10, "target": 10, "notes": "Add: water caustic light on text, ripple distortion on active chars" },
+        { "name": "Chord-aware visuals", "score": 10, "target": 10, "notes": "Resolution = water settling clear; minor = deeper/darker water" },
+        { "name": "Interactive elements", "score": 10, "target": 10, "notes": "Rhythm tap = tapping water surface (perfect fit!); drag = stirring water" },
+        { "name": "Multi-song adaptability", "score": 10, "target": 10, "notes": "Per-song water character: calm lake, flowing river, stormy sea, still pond, etc." }
+      ]
+    },
+    {
+      "name": "Technical Excellence (完成度)",
+      "weight": 0.30,
+      "target": 10,
+      "subcriteria": [
+        { "name": "Cross-device compatibility", "score": 10, "target": 10, "notes": "4-tier quality, touch, orientation, safe-area" },
+        { "name": "Performance", "score": 10, "target": 10, "notes": "Frame budget, pooled effects, zero-alloc, contain:layout" },
+        { "name": "Code quality", "score": 10, "target": 10, "notes": "Full JSDoc, error boundaries, type guards" },
+        { "name": "Error handling", "score": 9, "target": 9, "notes": "Try/catch, context loss, null guards" },
+        { "name": "Build/deployment", "score": 9, "target": 10, "notes": "README with concept/build/tech, OG meta, own token, .env — needs deployed URL + demo video" },
+        { "name": "TextAlive API integration", "score": 10, "target": 10, "notes": "Full API depth" },
+        { "name": "Accessibility", "score": 10, "target": 10, "notes": "Full WCAG coverage" }
+      ]
+    }
+  ],
+  "workPlan": [
+    { "phase": "prev", "id": "done-all", "task": "All 32 previous tasks (technical foundation)", "status": "completed", "impact": "P0", "criterion": "All" },
+
+    { "phase": "A", "id": "A1", "task": "Rename project → 'Sonare' (湖のソナーレ), update all text/meta/title", "status": "completed", "impact": "P0", "criterion": "Theme Alignment" },
+    { "phase": "A", "id": "A2", "task": "Recolor base palette: deep space → deep lake (dark teal, midnight blue, silver moonlight)", "status": "completed", "impact": "P0", "criterion": "Theme Alignment" },
+    { "phase": "A", "id": "A3", "task": "Water surface shader: replace star field with reflective water plane", "status": "completed", "impact": "P0", "criterion": "Theme Alignment" },
+    { "phase": "A", "id": "A4", "task": "Ripple system: shockwaves → water ripples (concentric rings on water surface)", "status": "completed", "impact": "P0", "criterion": "Theme Alignment" },
+    { "phase": "A", "id": "A5", "task": "Reflection map: star map → lights reflected in lake surface (words become glowing reflections)", "status": "completed", "impact": "P0", "criterion": "Theme Alignment" },
+    { "phase": "A", "id": "A6", "task": "Update song profiles: space themes → water character per song (calm/storm/flow/still/deep/rushing)", "status": "completed", "impact": "P1", "criterion": "Theme Alignment" },
+    { "phase": "A", "id": "A7", "task": "Intro/outro retheme: 'Your song fills the lake' / outro shows full reflection map", "status": "completed", "impact": "P1", "criterion": "Theme Alignment" },
+
+    { "phase": "B", "id": "B1", "task": "Tufte: visual effect cap — max 3 simultaneous effects, priority queue", "status": "completed", "impact": "P0", "criterion": "Tufte Readability" },
+    { "phase": "B", "id": "B2", "task": "Tufte: lyric-first hierarchy — 3D scene dims 30% when lyrics active", "status": "completed", "impact": "P0", "criterion": "Tufte Readability" },
+    { "phase": "B", "id": "B3", "task": "Tufte: negative space — glass-still water + minimal effects during lyric gaps", "status": "completed", "impact": "P1", "criterion": "Tufte Readability" },
+    { "phase": "B", "id": "B4", "task": "Tufte: HUD minimalism — auto-hide during playback, show on hover/tap", "status": "completed", "impact": "P2", "criterion": "Tufte Readability" },
+
+    { "phase": "C", "id": "C1", "task": "Coherence audit: nebula→underwater glow, orbits→currents, orb→water pearl, burst→splash", "status": "completed", "impact": "P0", "criterion": "Sakurai Coherence" },
+    { "phase": "C", "id": "C2", "task": "Coherence: rhythm tap → 'touch the water' — ripple from tap point, water aurora combo", "status": "completed", "impact": "P1", "criterion": "Sakurai Coherence" },
+    { "phase": "C", "id": "C3", "task": "Coherence: semantic touch → 'dive deeper' — tapping a word shows its meaning rising from below the surface", "status": "pending", "impact": "P2", "criterion": "Sakurai Coherence" },
+    { "phase": "C", "id": "C4", "task": "Coherence: mood pipeline → water states (still/gentle/flowing/stormy)", "status": "completed", "impact": "P1", "criterion": "Sakurai Coherence" },
+
+    { "phase": "D", "id": "D1", "task": "README.md with concept explanation, screenshots, build instructions", "status": "completed", "impact": "P0", "criterion": "Technical Submission" },
+    { "phase": "D", "id": "D2", "task": "Update OG meta, page title, manifest for 'Sonare' branding", "status": "completed", "impact": "P1", "criterion": "Technical Submission" },
+    { "phase": "D", "id": "D3", "task": "Deploy to GitHub Pages or similar", "status": "pending", "impact": "P1", "criterion": "Technical Submission" },
+
+    { "phase": "E", "id": "E1", "task": "Beautiful water shader: Gerstner waves, Fresnel reflections, moonlight specular, subsurface scatter, horizon fog", "status": "completed", "impact": "P0", "criterion": "Aesthetic Quality" },
+    { "phase": "E", "id": "E2", "task": "Cinematic live camera: idle drift, beat pulse, energy zoom, chorus sweep, climax tilt", "status": "completed", "impact": "P0", "criterion": "Aesthetic Quality" },
+    { "phase": "E", "id": "E3", "task": "Magical song selector: frosted glass cards, water descriptors, entrance stagger, title animation", "status": "completed", "impact": "P1", "criterion": "Sakurai Coherence" },
+    { "phase": "E", "id": "E4", "task": "Lyric text legibility: text stroke, dark backdrop vignette, raised position above waterline", "status": "completed", "impact": "P0", "criterion": "Tufte Readability" },
+    { "phase": "E", "id": "E5", "task": "Semantic resonance: whole word glows when any syllable active, blazing active char, sympathetic siblings", "status": "completed", "impact": "P1", "criterion": "Sakurai Coherence" },
+
+    { "phase": "F", "id": "F1", "task": "Semantic tooltip retheme: 'dive deeper' — meaning rises from below water surface", "status": "pending", "impact": "P2", "criterion": "Sakurai Coherence" },
+    { "phase": "F", "id": "F2", "task": "Water caustic light effect on lyric text (CSS shimmer tied to water state)", "status": "completed", "impact": "P2", "criterion": "Aesthetic Quality" },
+    { "phase": "F", "id": "F3", "task": "Expand semantic dictionary: more water/lake/nature words for thematic resonance", "status": "completed", "impact": "P2", "criterion": "Theme Alignment" },
+    { "phase": "F", "id": "F4", "task": "Live visual testing pass: full song playthrough, tune intensities, fix visual conflicts", "status": "completed", "impact": "P0", "criterion": "All" },
+    { "phase": "F", "id": "F5", "task": "Song selector: show water surface behind cards (3D scene visible through backdrop-blur)", "status": "pending", "impact": "P3", "criterion": "Sakurai Coherence" },
+    { "phase": "F", "id": "F6", "task": "Deploy + demo video recording", "status": "in-progress", "impact": "P1", "criterion": "Technical Submission" },
+    { "phase": "F", "id": "F7", "task": "Miku love: #39C5BB prominence, '39' Easter egg, voice-fills-the-lake narrative, twintail orbit echoes", "status": "completed", "impact": "P0", "criterion": "Theme Alignment" },
+
+    { "phase": "G", "id": "G1", "task": "JA/EN language toggle: frosted glass button, i18n module, localStorage persistence, all UI strings bilingual", "status": "completed", "impact": "P1", "criterion": "Technical Submission" },
+    { "phase": "G", "id": "G2", "task": "English subtitles: poetic translations synced to phrase timing, shown below Japanese lyrics in EN mode", "status": "completed", "impact": "P1", "criterion": "Aesthetic Quality" }
+  ]
+}
