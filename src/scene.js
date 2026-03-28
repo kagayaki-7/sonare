@@ -527,20 +527,20 @@ export class SonareScene {
   // ─── Moonlight reflection (water pearl sitting on/in the lake surface) ───
   _createCentralOrb() {
     this.orb = new THREE.Mesh(
-      new THREE.SphereGeometry(1.5, 32, 32), // slightly smaller — a pearl, not a star
+      new THREE.SphereGeometry(0.6, 24, 24), // small — moon reflection pearl beneath water
       new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 }, uBeatPulse: { value: 0 },
-          uBreathSpeed: { value: 1.5 },
-          uColor1: { value: new THREE.Color(0xb0d8e8) }, // pale moonlit blue
-          uColor2: { value: new THREE.Color(0xd4e8f0) }, // soft silver-white
+          uBreathSpeed: { value: 1.0 },
+          uColor1: { value: new THREE.Color(0xc8e0f0) }, // pale moonlit blue
+          uColor2: { value: new THREE.Color(0xe0eef8) }, // soft silver-white
         },
         vertexShader: orbVertexShader,
         fragmentShader: orbFragmentShader,
         transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide,
       })
     );
-    this.orb.position.y = -5; // closer to water surface (water is at y=-8)
+    this.orb.position.y = -9; // submerged just beneath water surface (water at y=-8)
     this.scene.add(this.orb);
   }
 
@@ -561,10 +561,10 @@ export class SonareScene {
         blending: THREE.AdditiveBlending, depthWrite: false,
       });
       const radiusJitter = fp.ringRadiusJitter[i] || 0;
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(8 + i * 3.5 + radiusJitter, 0.02, 8, 128), mat);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(6 + i * 2.5 + radiusJitter, 0.015, 8, 128), mat);
       ring.rotation.x = twintailTilts[i].x;
       ring.rotation.z = twintailTilts[i].z + i * 0.7;
-      ring.position.y = -7.2; // just above water surface at -8
+      ring.position.y = -7.8; // barely above water surface at -8
       this.scene.add(ring);
       this.orbitRings.push(ring);
     }
@@ -1883,13 +1883,12 @@ export class SonareScene {
     if (this.orb) {
       const ou = this.orb.material.uniforms;
       ou.uTime.value = t; ou.uBeatPulse.value = this.beatIntensity; ou.uBreathSpeed.value = this._songBreathSpeed;
-      const baseOrb = this._songOrbScale;
-      const targetScale = baseOrb + this.songProgress * 0.3 + this.beatIntensity * mp.beatScale * 2 + (this.chorusActive ? 0.3 : 0) + this._vocalAmplitude * 0.4;
-      this.orb.scale.setScalar(smoothDamp(this.orb.scale.x, targetScale, 6.0, delta));
+      const baseOrb = this._songOrbScale * 0.5; // smaller — submerged moon reflection
+      const targetScale = baseOrb + this.beatIntensity * mp.beatScale * 0.8 + this._vocalAmplitude * 0.2;
+      this.orb.scale.setScalar(smoothDamp(this.orb.scale.x, targetScale, 4.0, delta));
       if (this.mouseActive) {
-        this.orb.position.x = smoothDamp(this.orb.position.x, this.mouseSmooth.x * 1.5, 2.0, delta);
-        // Constrain Y near water surface — pearl floats on the lake, gentle bob with mouse
-        this.orb.position.y = smoothDamp(this.orb.position.y, -5 + this.mouseSmooth.y * 0.5, 2.0, delta);
+        this.orb.position.x = smoothDamp(this.orb.position.x, this.mouseSmooth.x * 0.8, 2.0, delta);
+        this.orb.position.y = smoothDamp(this.orb.position.y, -9 + this.mouseSmooth.y * 0.2, 2.0, delta);
       }
       if (this.chorusActive) {
         ou.uColor1.value.setHSL((t * 0.05) % 1, 0.6, 0.55);
