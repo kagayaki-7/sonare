@@ -11,7 +11,7 @@ import { Player } from "textalive-app-api";
 import { SonareScene } from "./scene.js";
 import { SONGS } from "./songs.js";
 import { initSeed, deriveSeedFingerprint } from "./prng.js";
-import { matchWord, LyricMemory, CATEGORY } from "./lyricSemantics.js";
+import { matchWord, LyricMemory, CATEGORY, CATEGORY_COLORS } from "./lyricSemantics.js";
 import { getLang, setLanguage, t, applyToDOM } from "./i18n.js";
 import { getTranslations, getSubtitleForPhrase } from "./translations.js";
 
@@ -77,6 +77,8 @@ let lastTapTime = 0;
 let chordHistory = [];
 let lastPhraseEndTime = 0;
 let phraseSemanticCount = 0;
+/** @type {Set<number>} Semantic group IDs that have already triggered their active-word ripple this phrase */
+let activeSemanticGroupsTriggered = new Set();
 let cachedDurationStr = "0:00";
 let cachedDurationMs = 0;
 
@@ -578,13 +580,20 @@ function onTimeUpdate(position) {
         currentLyricDensity = recentWordTimes.length / 3; // words per second over 3s window
         if (scene) scene.setLyricDensity(currentLyricDensity);
 
+        // Apply density CSS classes so high-density (rapid lyrics) and low-density
+        // (sparse, breathing) moments have visually distinct character treatments
+        if (phraseDisplay) {
+          phraseDisplay.classList.toggle("density-high", currentLyricDensity > 2.5);
+          phraseDisplay.classList.toggle("density-low", currentLyricDensity < 0.8 && currentLyricDensity > 0);
+        }
+
         const semantic = matchWord(text);
         if (semantic) {
+          lyricMemory.accumulate(semantic, text);
           if (scene) {
             scene.triggerSemanticEffect(semantic);
             scene.setMemoryState(lyricMemory.getState());
           }
-          lyricMemory.accumulate(semantic);
           colorSemanticChars(word, semantic);
         } else {
           if (scene) scene.triggerWordEffect("burst", text);
@@ -727,8 +736,9 @@ function updatePhraseDisplay(phrase, position) {
       const announceEl = document.getElementById("lyric-announce");
       if (announceEl) announceEl.textContent = phraseText;
       phraseChars = [];
-      phraseDisplay.classList.remove("fade-out-phrase", "phrase-enter", "dense-semantic");
+      phraseDisplay.classList.remove("fade-out-phrase", "phrase-enter", "dense-semantic", "density-high", "density-low");
       phraseSemanticCount = 0;
+      activeSemanticGroupsTriggered.clear();
 
       // Show English subtitle for this phrase
       showSubtitle(currentPhraseIndex);
@@ -800,6 +810,10 @@ function updatePhraseDisplay(phrase, position) {
         if (activeDuration > 500) {
           extra += " char-held";
         }
+        // Preserve word-timing class (sustained/staccato) through className rewrite
+        if (ch.timingClass) {
+          extra += " " + ch.timingClass;
+        }
         ch.el.className = "char active" + isSemantic + extra;
         // Clear any interpolated opacity from anticipation phase
         ch.el.style.removeProperty("--char-glow-t");
@@ -807,15 +821,18 @@ function updatePhraseDisplay(phrase, position) {
         ch.el.className = "char sung" + isSemantic;
         ch.el.style.removeProperty("--char-glow-t");
       } else {
-        // Upcoming character — check for anticipation window (100ms before start)
+        // Upcoming character — check for anticipation window (250ms before start)
         const timeUntilActive = ch.startTime - position;
-        if (timeUntilActive <= 100 && timeUntilActive > 0) {
-          // Interpolate glow intensity: 0 at 100ms out, 1 at 0ms out
-          const t = 1 - (timeUntilActive / 100);
+        if (timeUntilActive <= 250 && timeUntilActive > 0) {
+          // Interpolate glow intensity: eased curve for a "gathering breath" feel
+          const tLinear = 1 - (timeUntilActive / 250);
+          // Ease-in-quad: slow start, accelerating toward activation
+          const t = tLinear * tLinear;
           ch.el.className = "char char-anticipation" + isSemantic;
-          // Precise timing interpolation: scale opacity proportionally
-          ch.el.style.opacity = (0.25 + t * 0.35).toFixed(3);
-          ch.el.style.transform = `scale(${(1 + t * 0.02).toFixed(4)})`;
+          // Opacity ramps from dim (0.25) to pre-active (0.65) with breath-like easing
+          ch.el.style.opacity = (0.25 + t * 0.40).toFixed(3);
+          // Subtle scale growth: 1.0 -> 1.04 as activation approaches
+          ch.el.style.transform = `scale(${(1 + t * 0.04).toFixed(4)})`;
         } else {
           ch.el.className = "char" + isSemantic;
           // Interpolation for chars between two start times:
@@ -838,12 +855,19 @@ function updatePhraseDisplay(phrase, position) {
     }
 
     // Semantic resonance pass: when any char in a semantic word is active,
-    // all sibling chars in that word get a sympathetic glow
+    // all sibling chars in that word get a sympathetic glow + scene ripple on first activation
     let activeSemanticGroups = null;
     for (const ch of phraseChars) {
       if (ch.semanticGroupId && position >= ch.startTime && position < ch.endTime) {
         if (!activeSemanticGroups) activeSemanticGroups = new Set();
         activeSemanticGroups.add(ch.semanticGroupId);
+        // First time this semantic word becomes active — trigger scene moment
+        if (!activeSemanticGroupsTriggered.has(ch.semanticGroupId)) {
+          activeSemanticGroupsTriggered.add(ch.semanticGroupId);
+          if (scene && ch.semanticCategory) {
+            scene.onSemanticWordActive(ch.semanticCategory, ch.semanticColor);
+          }
+        }
       }
     }
     if (activeSemanticGroups) {
@@ -854,15 +878,22 @@ function updatePhraseDisplay(phrase, position) {
           if (!(position >= ch.startTime && position < ch.endTime)) {
             ch.el.classList.add("semantic-resonance");
           }
+          // Mark the word container as actively being sung
+          const wordEl = ch.el.closest(".word");
+          if (wordEl) wordEl.classList.add("semantic-word-active");
         } else {
           ch.el.classList.remove("semantic-resonance");
+          const wordEl = ch.el.closest(".word");
+          if (wordEl) wordEl.classList.remove("semantic-word-active");
         }
       }
     } else {
-      // No active semantic words — clear all resonance
+      // No active semantic words — clear all resonance and word-active states
       for (const ch of phraseChars) {
         if (ch.el && ch.semanticGroupId) {
           ch.el.classList.remove("semantic-resonance");
+          const wordEl = ch.el.closest(".word");
+          if (wordEl) wordEl.classList.remove("semantic-word-active");
         }
       }
     }
@@ -930,15 +961,25 @@ function colorSemanticChars(word, semantic) {
     const cssColor = `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
     const ws = word.startTime - 50;
     const we = word.endTime + 50;
+    /** @type {HTMLSpanElement|null} */
+    let wordEl = null;
     for (const ch of phraseChars) {
       if (ch.startTime < we && ch.endTime > ws) {
         ch.semanticColor = cssColor;
+        ch.semanticCategory = semantic.category;
         ch.semanticGroupId = semanticGroupId;
         if (ch.el) {
           ch.el.style.setProperty("--semantic-color", cssColor);
           ch.el.classList.add("semantic");
+          // Tag the parent .word container for the underline shimmer
+          if (!wordEl) wordEl = ch.el.closest(".word");
         }
       }
+    }
+    // Apply category color and semantic-word class to the word container
+    if (wordEl) {
+      wordEl.classList.add("semantic-word");
+      wordEl.style.setProperty("--word-semantic-color", cssColor);
     }
 
     // Dense phrase detection
@@ -960,10 +1001,19 @@ function colorSemanticChars(word, semantic) {
 const CATEGORY_I18N_KEYS = {
   nature: "category.nature", emotion: "category.emotion", light: "category.light", dark: "category.dark",
   movement: "category.movement", voice: "category.voice", time: "category.time", bond: "category.bond",
+  water: "category.water", sound: "category.sound", miku: "category.miku",
+};
+
+/** @type {Record<string, string>} Category icons for the semantic tooltip. */
+const CATEGORY_ICONS = {
+  water: "💧", nature: "🌿", emotion: "❤️", time: "⏳", sound: "🎵",
+  miku: "✨", light: "💫", dark: "🌑", movement: "🌊", voice: "🎤",
+  bond: "💜",
 };
 
 /**
- * Show a tooltip with the semantic category when a recognized word is tapped.
+ * Show a tooltip with semantic info when a recognized word is tapped.
+ * Appears like a bubble surfacing from the lake — rising with clearing blur.
  * @param {HTMLElement} wordEl - The .word span element that was tapped.
  * @param {MouseEvent} e - The click event for positioning.
  */
@@ -974,24 +1024,68 @@ function showSemanticTooltip(wordEl, e) {
     const semantic = matchWord(text);
     if (!semantic) return;
 
-    const label = CATEGORY_I18N_KEYS[semantic.category] ? t(CATEGORY_I18N_KEYS[semantic.category]) : semantic.category;
+    const label = CATEGORY_I18N_KEYS[semantic.category]
+      ? t(CATEGORY_I18N_KEYS[semantic.category])
+      : semantic.category;
+    const icon = CATEGORY_ICONS[semantic.category] || "✦";
     const [r, g, b] = semantic.color;
-    const cssColor = `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`;
+    const cssColor = `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`;
 
-    semanticTooltip.innerHTML = `<span class="tooltip-category" style="color:${cssColor}">${label}</span>`;
-    semanticTooltip.style.left = `${e.clientX}px`;
-    semanticTooltip.style.top = `${e.clientY - 40}px`;
+    // Build tooltip content: word, optional reading, category badge
+    // Strip the icon prefix from the i18n label if present (it has emoji already)
+    const labelText = label.replace(/^[\p{Emoji}\s]+/u, "").trim() || label;
+    const iconSpan = `<span class="tooltip-icon">${icon}</span>`;
+    const wordSpan = `<span class="tooltip-word">${text}</span>`;
+    const categorySpan = `<span class="tooltip-category" style="--cat-color:${cssColor}">${iconSpan} ${labelText}</span>`;
+
+    semanticTooltip.innerHTML = `${wordSpan}${categorySpan}`;
+    semanticTooltip.style.setProperty("--tooltip-accent", cssColor);
+
+    // Position above the clicked word, centered horizontally
+    const wordRect = wordEl.getBoundingClientRect();
+    const tooltipX = wordRect.left + wordRect.width / 2;
+    const tooltipY = wordRect.top;
+    semanticTooltip.style.left = `${tooltipX}px`;
+    semanticTooltip.style.top = `${tooltipY}px`;
+
+    // Reset animation state: remove both classes, force reflow, then show
+    semanticTooltip.classList.remove("visible", "sinking");
+    void semanticTooltip.offsetWidth; // force reflow
     semanticTooltip.classList.add("visible");
 
     if (scene) scene.triggerBeat(0.3);
 
+    // Dismiss on click anywhere
+    const dismiss = () => {
+      sinkAndHide();
+      document.removeEventListener("click", dismiss, true);
+    };
+    document.removeEventListener("click", semanticTooltip._dismissHandler, true);
+    semanticTooltip._dismissHandler = dismiss;
+    // Delay adding the listener so the current click doesn't immediately dismiss
+    requestAnimationFrame(() => {
+      document.addEventListener("click", dismiss, true);
+    });
+
+    // Auto-dismiss after 3 seconds with sinking animation
     clearTimeout(semanticTooltip._hideTimer);
     semanticTooltip._hideTimer = setTimeout(() => {
-      semanticTooltip.classList.remove("visible");
-    }, 2000);
+      sinkAndHide();
+      document.removeEventListener("click", dismiss, true);
+    }, 3000);
   } catch (err) {
     console.error("[Sonare] Error in showSemanticTooltip:", err);
   }
+}
+
+/**
+ * Dismiss the semantic tooltip with a sinking animation (reverse of surfacing).
+ */
+function sinkAndHide() {
+  if (!semanticTooltip) return;
+  semanticTooltip.classList.add("sinking");
+  semanticTooltip.classList.remove("visible");
+  clearTimeout(semanticTooltip._hideTimer);
 }
 
 // ─── Mood-responsive lyrics ───
@@ -1076,57 +1170,133 @@ function hideIntroCard() {
   if (introCard) introCard.classList.remove("visible");
 }
 
+/** Color mapping for the four emotional dimensions (CSS rgba strings). */
+const EMOTION_DIMENSION_COLORS = {
+  warmth:     { r: 255, g: 130, b: 100 }, // warm coral
+  melancholy: { r: 100, g: 120, b: 200 }, // deep blue
+  energy:     { r: 255, g: 160, b: 60  }, // vibrant amber
+  wonder:     { r: 100, g: 210, b: 200 }, // luminous teal
+};
+
+/**
+ * Convert a 0-1 RGB array to a CSS rgb string.
+ * @param {[number, number, number]} c - RGB in 0-1 range.
+ * @returns {string}
+ */
+function catColorCSS(c) {
+  return `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)})`;
+}
+
 /**
  * Trigger the outro sequence: start scene outro animation, reveal the lake reflection,
- * display the emotional summary card, then return to song select.
+ * display the rich emotional summary card, then smoothly return to song select.
  */
 function triggerOutro() {
   if (outroTriggered) return;
   outroTriggered = true;
 
   try {
+    // ── Phase 1: Start the 3D lake reveal (camera sweeps up and back) ──
     if (scene) {
       scene.startOutro();
       scene.revealStarMap();
     }
 
-    // Show outro card with rich emotion summary
+    if (phraseDisplay) phraseDisplay.classList.add("fade-out-phrase");
+
+    // ── Phase 2: Build the emotional summary card ──
     const state = lyricMemory.getState();
+    const topCategories = lyricMemory.getTopCategories(3);
+    const topWords = lyricMemory.getTopWords(3);
+
+    // Emotion dimension bars (warmth, melancholy, energy, wonder)
     const emotionI18nKeys = { warmth: "emotion.warmth", melancholy: "emotion.melancholy", energy: "emotion.energy", wonder: "emotion.wonder" };
     const emotions = Object.entries(state)
-      .filter(([k]) => k !== "wordCount" && k !== "recentPositions")
+      .filter(([k]) => emotionI18nKeys[k] !== undefined)
       .sort(([, a], [, b]) => b - a);
     const dominant = emotions[0];
+
     const bars = emotions.map(([key, val]) => {
       const label = emotionI18nKeys[key] ? t(emotionI18nKeys[key]) : key;
       const pct = Math.min(100, Math.round(val * 100));
-      return `<div class="outro-emotion-row"><span class="outro-emotion-label">${label}</span><div class="outro-emotion-bar"><div class="outro-emotion-fill" style="width:${pct}%"></div></div></div>`;
+      const dimColor = EMOTION_DIMENSION_COLORS[key] || { r: 57, g: 197, b: 187 };
+      const barGradient = `linear-gradient(90deg, rgba(${dimColor.r},${dimColor.g},${dimColor.b},0.5), rgba(${dimColor.r},${dimColor.g},${dimColor.b},0.7))`;
+      return `<div class="outro-emotion-row">
+        <span class="outro-emotion-label">${label}</span>
+        <div class="outro-emotion-bar">
+          <div class="outro-emotion-fill" style="width:${pct}%;background:${barGradient}"></div>
+        </div>
+        <span class="outro-emotion-pct">${pct}%</span>
+      </div>`;
     }).join("");
 
-    if (outroStats) {
-      const dominantLabel = dominant ? (emotionI18nKeys[dominant[0]] ? t(emotionI18nKeys[dominant[0]]) : dominant[0]) : "";
-      outroStats.innerHTML = dominant
-        ? `<div class="outro-dominant">${t("outro.dominant")} ${dominantLabel}</div>${bars}`
-        : "";
+    // Top words section: the 3 most-seen semantic words with their category colors
+    let topWordsHTML = "";
+    if (topWords.length > 0) {
+      const wordChips = topWords.map(w => {
+        const css = catColorCSS(w.color);
+        return `<span class="outro-word-chip" style="--chip-color:${css}">${w.word}</span>`;
+      }).join("");
+      topWordsHTML = `<div class="outro-top-words">
+        <div class="outro-section-label">${t("outro.topWords")}</div>
+        <div class="outro-word-chips">${wordChips}</div>
+      </div>`;
     }
 
-    if (phraseDisplay) phraseDisplay.classList.add("fade-out-phrase");
+    // Category summary sentence (e.g., "This song was full of Emotion and Light")
+    let categorySentence = "";
+    if (topCategories.length > 0) {
+      const catNames = topCategories.map(c => {
+        const key = CATEGORY_I18N_KEYS[c.category];
+        const label = key ? t(key) : c.category;
+        const css = catColorCSS(c.color);
+        return `<span class="outro-cat-name" style="color:${css}">${label}</span>`;
+      });
+      const joined = catNames.length > 1 ? catNames.slice(0, -1).join("、") + "、" + catNames[catNames.length - 1] : catNames[0];
+      categorySentence = `<div class="outro-category-sentence">${t("outro.fullOf").replace("{categories}", joined)}</div>`;
+    }
 
+    // Word count badge
+    const wordCountHTML = state.wordCount > 0
+      ? `<div class="outro-word-count"><span class="outro-count-number">${state.wordCount}</span> ${t("outro.wordsRecognized")}</div>`
+      : "";
+
+    // Dominant emotion label
+    const dominantLabel = dominant ? (emotionI18nKeys[dominant[0]] ? t(emotionI18nKeys[dominant[0]]) : dominant[0]) : "";
+    const dominantHTML = dominant && dominant[1] > 0.01
+      ? `<div class="outro-dominant">${t("outro.dominant")} ${dominantLabel}</div>`
+      : "";
+
+    if (outroStats) {
+      outroStats.innerHTML = `
+        ${categorySentence}
+        ${topWordsHTML}
+        ${wordCountHTML}
+        <div class="outro-section-label outro-map-label">${t("outro.emotionalMap")}</div>
+        ${dominantHTML}
+        ${bars}
+      `;
+    }
+
+    // ── Phase 3: Reveal the card (delayed to let the camera reveal play first) ──
     setTimeout(() => {
       if (outroCard) requestAnimationFrame(() => outroCard.classList.add("visible"));
-    }, 500);
+    }, 1800); // longer delay to let the lake reveal camera sweep play
 
-    // Return to song selector after outro
+    // ── Phase 4: Smooth transition back to song selector ──
     setTimeout(() => {
-      if (outroCard) outroCard.classList.remove("visible");
+      if (outroCard) outroCard.classList.add("fading");
       setTimeout(() => {
+        if (outroCard) {
+          outroCard.classList.remove("visible", "fading");
+        }
         if (phraseDisplay) phraseDisplay.classList.add("hidden");
         if (hudEl) hudEl.classList.add("hidden");
         if (player) player.requestStop();
         resetOutro();
         showSongSelect();
-      }, 800);
-    }, 4000);
+      }, 1200);
+    }, 8000); // longer display time to let audience absorb the summary
   } catch (err) {
     console.error("[Sonare] Error in triggerOutro:", err);
   }
@@ -1144,7 +1314,7 @@ function resetOutro() {
   currentLyricDensity = 0;
   if (scene) scene.setLyricDensity(0);
   if (introCard) introCard.classList.remove("visible");
-  if (outroCard) outroCard.classList.remove("visible");
+  if (outroCard) outroCard.classList.remove("visible", "fading");
   if (journeyFill) { journeyFill.style.width = "0%"; journeyFill.style.opacity = "0"; }
 }
 
@@ -1155,7 +1325,7 @@ function resetOutro() {
  */
 function showSongSelect() {
   if (introCard) introCard.classList.remove("visible");
-  if (outroCard) outroCard.classList.remove("visible");
+  if (outroCard) outroCard.classList.remove("visible", "fading");
 
   if (loadingEl) loadingEl.classList.add("fade-out");
   setTimeout(() => {
@@ -1242,7 +1412,7 @@ function loadSong(index) {
   chordHistory = [];
   lastPhraseEndTime = 0;
   if (introCard) introCard.classList.remove("visible");
-  if (outroCard) outroCard.classList.remove("visible");
+  if (outroCard) outroCard.classList.remove("visible", "fading");
   if (journeyFill) { journeyFill.style.width = "0%"; journeyFill.style.opacity = "0"; }
 
   // Apply per-song theme to the 3D scene
@@ -1279,6 +1449,7 @@ function applyWordTimingClass(word, duration) {
     if (ch.startTime < we && ch.endTime > ws && ch.el) {
       ch.el.classList.add(cls);
       ch.wordDuration = duration;
+      ch.timingClass = cls;
     }
   }
 }

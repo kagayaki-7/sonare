@@ -123,6 +123,22 @@ export const strings = {
     ja: "主要な感情:",
     en: "Dominant:",
   },
+  "outro.wordsRecognized": {
+    ja: "認識された言葉",
+    en: "words recognized",
+  },
+  "outro.topWords": {
+    ja: "最も響いた言葉",
+    en: "Words that echoed most",
+  },
+  "outro.emotionalMap": {
+    ja: "感情の地図",
+    en: "Emotional map",
+  },
+  "outro.fullOf": {
+    ja: "この歌は{categories}に満ちていた",
+    en: "This song was full of {categories}",
+  },
 
   // ─── Emotion labels ───
   "emotion.warmth": {
@@ -188,6 +204,18 @@ export const strings = {
   "category.bond": {
     ja: "💕 絆",
     en: "💕 Bond",
+  },
+  "category.water": {
+    ja: "💧 水",
+    en: "💧 Water",
+  },
+  "category.sound": {
+    ja: "🎵 音",
+    en: "🎵 Sound",
+  },
+  "category.miku": {
+    ja: "✨ ミク",
+    en: "✨ Miku",
   },
 
   // ─── HUD controls ───

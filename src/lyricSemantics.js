@@ -513,6 +513,25 @@ function isKanji(ch) {
  * that slowly build as semantic words are encountered, shaping how the
  * 3D scene evolves over time.
  */
+/**
+ * Category color map: canonical RGB colors for each semantic category.
+ * Used for the outro emotional summary bars and reflection map.
+ * @type {Record<string, [number, number, number]>}
+ */
+export const CATEGORY_COLORS = {
+  [CATEGORY.NATURE]:   [0.3, 0.8, 0.5],   // green
+  [CATEGORY.EMOTION]:  [1.0, 0.45, 0.6],   // pink
+  [CATEGORY.LIGHT]:    [1.0, 0.9, 0.5],    // warm gold
+  [CATEGORY.DARK]:     [0.35, 0.3, 0.6],   // deep indigo
+  [CATEGORY.MOVEMENT]: [0.3, 0.7, 0.9],    // sky blue
+  [CATEGORY.VOICE]:    [0.9, 0.55, 0.3],   // amber
+  [CATEGORY.TIME]:     [0.6, 0.5, 0.9],    // lavender
+  [CATEGORY.BOND]:     [0.85, 0.4, 0.75],  // magenta-pink
+  [CATEGORY.WATER]:    [0.2, 0.7, 0.8],    // teal
+  [CATEGORY.SOUND]:    [0.5, 0.8, 0.7],    // seafoam
+  [CATEGORY.MIKU]:     [0.22, 0.77, 0.73], // Miku teal
+};
+
 export class LyricMemory {
   constructor() {
     this.reset();
@@ -522,21 +541,31 @@ export class LyricMemory {
    * Reset all accumulated state. Called at the start of each new song.
    */
   reset() {
-    // Accumulated emotional dimensions (0–1)
-    this.warmth = 0;      // love, joy, bonds → warm colors
-    this.melancholy = 0;  // sadness, darkness, loneliness → cool/deep colors
-    this.energy = 0;      // movement, shouts, intensity → bloom, particles
-    this.wonder = 0;      // nature, light, dreams → fog clear, shimmer
+    // Accumulated emotional dimensions (0-1)
+    this.warmth = 0;      // love, joy, bonds
+    this.melancholy = 0;  // sadness, darkness, loneliness
+    this.energy = 0;      // movement, shouts, intensity
+    this.wonder = 0;      // nature, light, dreams
     this.wordCount = 0;   // total semantic words encountered
     this.recentWords = []; // last N words for constellation system
+
+    // Per-category tracking for the outro emotional summary
+    /** @type {Record<string, number>} */
+    this.categoryCounts = {};
+    /** @type {Record<string, Record<string, number>>} word frequency per category */
+    this.categoryWords = {};
+    /** @type {Array<{word: string, category: string, color: [number,number,number]}>} */
+    this.topWordsOrdered = [];
   }
 
   /**
    * Accumulate a semantic descriptor into the memory dimensions.
    * Each category maps to one of the four emotional dimensions.
+   * Also tracks per-category counts and top words for the outro summary.
    * @param {SemanticDescriptor|null} descriptor - The descriptor to accumulate. Null is safely ignored.
+   * @param {string} [wordText] - The original word text (for top-words display).
    */
-  accumulate(descriptor) {
+  accumulate(descriptor, wordText) {
     if (!descriptor) return;
 
     const { category, intensity } = descriptor;
@@ -565,6 +594,19 @@ export class LyricMemory {
     }
 
     this.wordCount++;
+
+    // Track per-category counts
+    this.categoryCounts[category] = (this.categoryCounts[category] || 0) + 1;
+
+    // Track word frequency per category
+    if (wordText) {
+      if (!this.categoryWords[category]) this.categoryWords[category] = {};
+      this.categoryWords[category][wordText] = (this.categoryWords[category][wordText] || 0) + 1;
+      // Maintain ordered list of top words (deduplicated, most recent appearance order)
+      const existing = this.topWordsOrdered.findIndex(w => w.word === wordText);
+      if (existing >= 0) this.topWordsOrdered.splice(existing, 1);
+      this.topWordsOrdered.push({ word: wordText, category, color: descriptor.color });
+    }
   }
 
   /**
@@ -584,6 +626,7 @@ export class LyricMemory {
 
   /**
    * Get a snapshot of the current accumulated emotional state.
+   * Includes per-category breakdowns and top words for the outro summary.
    * @returns {MemoryState} The current state of all emotional dimensions.
    */
   getState() {
@@ -593,6 +636,42 @@ export class LyricMemory {
       energy: this.energy,
       wonder: this.wonder,
       wordCount: this.wordCount,
+      categoryCounts: { ...this.categoryCounts },
+      topWordsOrdered: [...this.topWordsOrdered],
     };
+  }
+
+  /**
+   * Get the top N semantic categories sorted by count (descending).
+   * @param {number} [n=3] - Number of top categories to return.
+   * @returns {Array<{category: string, count: number, color: [number,number,number]}>}
+   */
+  getTopCategories(n = 3) {
+    return Object.entries(this.categoryCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, n)
+      .map(([category, count]) => ({
+        category,
+        count,
+        color: CATEGORY_COLORS[category] || [0.5, 0.5, 0.5],
+      }));
+  }
+
+  /**
+   * Get the top N most-seen semantic words, each with its category color.
+   * @param {number} [n=3] - Number of top words to return.
+   * @returns {Array<{word: string, category: string, count: number, color: [number,number,number]}>}
+   */
+  getTopWords(n = 3) {
+    // Flatten all category word counts into a single sorted list
+    const allWords = [];
+    for (const [category, words] of Object.entries(this.categoryWords)) {
+      for (const [word, count] of Object.entries(words)) {
+        const color = CATEGORY_COLORS[category] || [0.5, 0.5, 0.5];
+        allWords.push({ word, category, count, color });
+      }
+    }
+    allWords.sort((a, b) => b.count - a.count);
+    return allWords.slice(0, n);
   }
 }

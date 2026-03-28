@@ -184,6 +184,9 @@ export class SonareScene {
     this._sceneFxFog = 0;
     this._sceneFxWarm = 0;
 
+    // Reflection bloom pulse (brief brightening when a new reflection is planted)
+    this._reflectionBloomPulse = 0;
+
     // Song progression gradient — hue journey across the song
     this._progressionHueStart = 0.48; // teal
     this._progressionHueEnd = 0.85;   // violet/magenta
@@ -659,12 +662,17 @@ export class SonareScene {
         void main() {
           float d = length(gl_PointCoord - vec2(0.5));
           if (d > 0.5) discard;
-          // Softer glow for reflected-light-on-water feel
-          float glow = 1.0 - smoothstep(0.0, 0.5, d);
-          glow = pow(glow, 1.5);
-          float core = 1.0 - smoothstep(0.0, 0.2, d);
-          vec3 col = vColor * glow + vec3(0.8, 0.95, 1.0) * core * 0.3;
-          gl_FragColor = vec4(col, vOpacity * glow * 0.85);
+          // Multi-layer glow for reflected-light-on-water feel
+          float outerGlow = 1.0 - smoothstep(0.0, 0.5, d);
+          outerGlow = pow(outerGlow, 1.3);
+          float innerGlow = 1.0 - smoothstep(0.0, 0.3, d);
+          float core = 1.0 - smoothstep(0.0, 0.12, d);
+          // Outer halo uses the category color, inner core adds white warmth
+          vec3 col = vColor * outerGlow * 0.8
+                   + vColor * innerGlow * 0.4
+                   + vec3(0.85, 0.97, 1.0) * core * 0.35;
+          float alpha = vOpacity * outerGlow * 0.9;
+          gl_FragColor = vec4(col, alpha);
         }
       `,
       transparent: true,
@@ -734,13 +742,16 @@ export class SonareScene {
 
     posAttr.setXYZ(idx, position.x, position.y, position.z);
     colAttr.setXYZ(idx, starColor.r, starColor.g, starColor.b);
-    sizeAttr.setX(idx, 2.0 + intensity * 2.0); // Larger than background stars
+    sizeAttr.setX(idx, (2.0 + intensity * 2.0) * 2.5); // Birth pulse: start 2.5x size
     opacAttr.setX(idx, 1.0); // Start at full brightness (flash)
 
     posAttr.needsUpdate = true;
     colAttr.needsUpdate = true;
     sizeAttr.needsUpdate = true;
     opacAttr.needsUpdate = true;
+
+    // Bloom acknowledgement pulse: brief brightening when a new reflection is planted
+    this._reflectionBloomPulse = 0.18 + intensity * 0.12;
 
     // Find nearby reflections for light path connections
     this._connectStarMapLines(star);
@@ -1252,6 +1263,15 @@ export class SonareScene {
     this._starMapLineCount = 0;
     this._starMapReveal = false;
     this._starMapRevealProgress = 0;
+    this._starMapRevealActive = false;
+    this._starMapRevealElapsed = 0;
+    this._reflectionBloomPulse = 0;
+
+    // Reset camera FOV to default (may have been widened during outro reveal)
+    this.camera.fov = 55;
+    this.camera.position.y = 0;
+    this.camera.rotation.x = 0;
+    this.camera.updateProjectionMatrix();
     if (this.starMapPoints) {
       const posAttr = this.starMapPoints.geometry.getAttribute("position");
       const sizeAttr = this.starMapPoints.geometry.getAttribute("size");
@@ -1549,6 +1569,43 @@ export class SonareScene {
   }
 
   /**
+   * Called the moment a semantic word becomes the actively-sung syllable.
+   * Spawns a category-colored ripple on the water and nudges exposure briefly,
+   * creating a subtle "the world noticed this word" moment.
+   * @param {string} category - The semantic category (e.g., "emotion", "nature").
+   * @param {string} cssColor - The CSS rgb() color string for the word.
+   */
+  onSemanticWordActive(category, cssColor) {
+    // Parse CSS color to THREE.Color
+    const m = cssColor && cssColor.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    const rippleColor = this._tmpColor.set(0x39c5bb);
+    if (m) rippleColor.setRGB(+m[1] / 255, +m[2] / 255, +m[3] / 255);
+
+    // Spawn a category-colored water ripple
+    const ring = this._shockwavePool.find(r => !r.userData.active);
+    if (ring) {
+      ring.material.color.copy(rippleColor);
+      ring.material.opacity = 0.14;
+      const rx = (this.rng.random() - 0.5) * 4;
+      const rz = (this.rng.random() - 0.5) * 4;
+      ring.position.set(rx, -7.5, rz);
+      ring.rotation.x = -Math.PI / 2;
+      ring.scale.set(1, 1, 1);
+      ring.userData.life = 0;
+      ring.userData.maxLife = 4.0;
+      ring.userData.maxScale = 12;
+      ring.userData.active = true;
+      ring.userData.isTrailing = false;
+      ring.visible = true;
+      this.shockwaves.push(ring);
+    }
+
+    // Brief exposure micro-nudge — the scene "brightens" for this word
+    this._sceneFxExposure = Math.max(this._sceneFxExposure || 0, 0.06);
+    this._sceneFxBloom = Math.max(this._sceneFxBloom || 0, 0.05);
+  }
+
+  /**
    * Trigger a basic particle burst for non-semantic words.
    * Has a random 80% chance of being skipped to avoid visual noise.
    * @param {string} type - Effect type (currently only "burst" used).
@@ -1824,7 +1881,14 @@ export class SonareScene {
       );
     }
 
-    this.bloomPass.strength += hmWarm * 0.06 - hmCool * 0.03 + this._climaxBloomSurge;
+    // Reflection plant bloom pulse — decays quickly
+    if (this._reflectionBloomPulse > 0.001) {
+      this._reflectionBloomPulse *= Math.exp(-6.0 * delta); // fast exponential decay
+    } else {
+      this._reflectionBloomPulse = 0;
+    }
+
+    this.bloomPass.strength += hmWarm * 0.06 - hmCool * 0.03 + this._climaxBloomSurge + this._reflectionBloomPulse;
     this.scene.fog.density += hmCool * 0.0008;
 
     // ── Harmonic mode: background color temperature ──
@@ -2068,42 +2132,74 @@ export class SonareScene {
     }
     const revealMix = this._starMapReveal ? easeOutCubic(this._starMapRevealProgress) : 0;
 
-    // ── Reveal: camera tilts down to show the full lake surface with reflected lights ──
+    // ── Reveal: cinematic camera sweep to show the full emotional lake ──
+    // Two-phase animation: (1) gentle rise + pullback, (2) sweeping tilt down to reveal the water
     if (this._starMapRevealActive && this._starMapRevealElapsed != null) {
-      const revealT = Math.min(this._starMapRevealElapsed / 3.0, 1.0);
-      const easedRevealT = easeOutCubic(revealT);
+      const elapsed = this._starMapRevealElapsed;
+      const duration = 4.0; // total reveal duration
+      const revealT = Math.min(elapsed / duration, 1.0);
+
+      // Phase 1 (0-40%): rise and pull back
+      // Phase 2 (30-100%): tilt down toward the lake (overlapping for smooth blend)
+      const riseT = easeOutCubic(Math.min(revealT / 0.4, 1.0));
+      const tiltT = easeOutCubic(Math.max(0, (revealT - 0.3) / 0.7));
+
       const startZ = this._starMapRevealStartZ || this.camera.position.z;
-      // Pull back moderately and tilt camera downward to show water surface
-      this.camera.position.z = startZ + easedRevealT * 30;
-      this.camera.position.y = easedRevealT * 12; // rise up
-      this.camera.rotation.x = -easedRevealT * 0.45; // tilt down toward the lake
+      this.camera.position.z = startZ + riseT * 35;        // pull back further for grandeur
+      this.camera.position.y = riseT * 15;                  // rise higher above the water
+      this.camera.rotation.x = -tiltT * 0.55;               // deeper tilt to see full lake surface
+
+      // Widen FOV slightly during reveal for an expansive feeling
+      this.camera.fov = 55 + tiltT * 8; // 55 -> 63
+      this.camera.updateProjectionMatrix();
     }
 
-    // ── Reveal: bloom surge — ramp up then hold ──
+    // ── Reveal: bloom surge — ramp up then hold (the lake glows) ──
     if (this._starMapRevealActive && revealMix > 0) {
-      this.bloomPass.strength += revealMix * 0.35;
-      this.bloomPass.radius = smoothDamp(this.bloomPass.radius, this.bloomPass.radius + revealMix * 0.2, 2.0, delta);
+      this.bloomPass.strength += revealMix * 0.4;
+      this.bloomPass.radius = smoothDamp(this.bloomPass.radius, this.bloomPass.radius + revealMix * 0.25, 2.0, delta);
     }
 
-    // Size multiplier: during reveal, scale reflection sizes up to 2x
-    const revealSizeMultiplier = 1.0 + revealMix * 1.0; // 1x -> 2x
+    // Size multiplier: during reveal, scale reflection sizes up to 2.5x for dramatic visibility
+    const revealSizeMultiplier = 1.0 + revealMix * 1.5; // 1x -> 2.5x
 
     let dirty = false;
     for (let i = 0; i < count; i++) {
       const reflection = this.lyricStarMap[i];
       const age = t - reflection.birthTime;
 
-      // Water shimmer: gentler, multi-frequency oscillation (like light on ripples)
-      const shimmer = 0.88 + 0.08 * Math.sin(t * 1.2 + i * 2.3) + 0.04 * Math.sin(t * 2.7 + i * 0.9);
-      const baseSize = 2.0 + reflection.intensity * 2.0;
-      sizeAttr.setX(i, baseSize * shimmer * revealSizeMultiplier);
+      // ── Water shimmer: multi-frequency oscillation like moonlight on ripples ──
+      // Each reflection gets a unique phase offset derived from its index and position
+      const phase1 = i * 2.3 + reflection.position.x * 0.2;
+      const phase2 = i * 0.9 + reflection.position.z * 0.15;
+      const phase3 = i * 1.7;
+      // Primary sway (slow, broad), secondary ripple (medium), tertiary sparkle (fast, subtle)
+      const shimmer = 0.85
+        + 0.08 * Math.sin(t * 0.8 + phase1)    // slow breathing
+        + 0.05 * Math.sin(t * 1.9 + phase2)    // ripple frequency
+        + 0.02 * Math.sin(t * 4.3 + phase3);   // sparkle glint
 
-      // Soft appear on birth (first 0.5s), then settle
+      const baseSize = 2.0 + reflection.intensity * 2.0;
+
+      // Birth pulse: exponential decay from 2.5x to 1x over ~0.8s
+      let birthScale = 1.0;
+      if (age < 0.8) {
+        birthScale = 1.0 + 1.5 * Math.exp(-age * 5.0); // 2.5x -> ~1x
+      }
+
+      sizeAttr.setX(i, baseSize * shimmer * birthScale * revealSizeMultiplier);
+
+      // ── Opacity: bright birth flash, settle to gentle glow, shimmer opacity too ──
       let targetOpacity;
-      if (age < 0.5) {
-        targetOpacity = 1.0 - (age / 0.5) * 0.5; // 1.0 -> 0.5
+      if (age < 0.15) {
+        // Bright flash on birth (first 150ms)
+        targetOpacity = 1.0;
+      } else if (age < 0.8) {
+        // Decay to resting opacity
+        targetOpacity = 0.55 + 0.45 * Math.exp(-(age - 0.15) * 4.0);
       } else {
-        targetOpacity = 0.5;
+        // Resting: gentle opacity shimmer (like water reflections fading in and out)
+        targetOpacity = 0.45 + 0.1 * Math.sin(t * 0.6 + phase1) + 0.05 * Math.sin(t * 1.4 + phase2);
       }
 
       // Reveal mode: push all reflections to full brightness

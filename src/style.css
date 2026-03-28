@@ -140,7 +140,7 @@ html, body {
   background:
     radial-gradient(ellipse 80% 60% at 30% 70%, rgba(57,197,187,0.06) 0%, transparent 60%),
     radial-gradient(ellipse 70% 50% at 70% 40%, rgba(100,140,200,0.05) 0%, transparent 55%),
-    radial-gradient(ellipse 90% 80% at 50% 50%, rgba(5,13,24,0.92) 0%, rgba(0,0,0,0.95) 100%);
+    radial-gradient(ellipse at center, rgba(5,13,24,0.85) 0%, rgba(2,5,12,0.92) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   z-index: 90;
@@ -485,7 +485,7 @@ html, body {
 #phrase-display .char {
   display: inline-block;
   opacity: 0.25;
-  transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease, text-shadow 0.3s ease;
+  transition: opacity 0.15s ease-out, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.22s ease-out, text-shadow 0.25s ease-out, filter 0.2s ease-out;
   color: rgba(220,235,245,0.55);
   will-change: transform, opacity;
   /* Text outline for legibility over water surface */
@@ -502,14 +502,17 @@ html, body {
   to { opacity: 0.35; transform: translateY(0); }
 }
 
-/* Anticipation glow — 100ms before a char becomes active */
+/* Anticipation glow — 250ms before a char becomes active, "gathering breath" */
 #phrase-display .char.char-anticipation {
-  opacity: 0.6;
-  color: rgba(255,255,255,0.65);
-  transform: scale(1.02);
+  opacity: 0.65;
+  color: rgba(235,245,255,0.72);
+  transform: scale(1.04);
   text-shadow:
-    0 0 6px rgba(255,255,255,0.3),
-    0 0 15px rgba(57,197,187,0.2);
+    0 0 4px rgba(255,255,255,0.25),
+    0 0 10px rgba(57,197,187,0.18),
+    0 0 20px rgba(57,197,187,0.08);
+  /* Smoother ramp into anticipation — overrides base transition for this state */
+  transition: opacity 0.18s ease-out, transform 0.22s ease-out, color 0.2s ease-out, text-shadow 0.22s ease-out;
 }
 
 /* Active character — the one being sung RIGHT NOW */
@@ -524,81 +527,204 @@ html, body {
     0 0 calc(var(--glow-radius, 25px) * 2) rgba(57,197,187,0.4),
     0 0 calc(var(--glow-radius, 25px) * 3) rgba(233,145,207,0.2);
   -webkit-text-stroke: 0.8px rgba(0,10,20,0.5);
-  filter: brightness(1.1);
+  filter: brightness(1.15);
+  /* Snap into active quickly, then let glow bloom */
+  transition: opacity 0.06s ease-out, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.08s ease-out, text-shadow 0.22s ease-out, filter 0.12s ease-out;
 }
 
-/* Downbeat emphasis — characters activated on beat position 1 */
+/* Downbeat emphasis — characters activated on beat position 1.
+   Brief bright flash that decays, like the attack of a note. */
 #phrase-display .char.char-downbeat {
-  transform: scale(1.15) translateY(-3px);
+  transform: scale(1.18) translateY(-3px);
   text-shadow:
-    0 0 15px rgba(255,255,255,1),
+    0 0 8px rgba(255,255,255,1),
+    0 0 18px rgba(255,255,255,0.7),
     0 0 var(--glow-radius, 30px) rgba(57,197,187,1),
     0 0 calc(var(--glow-radius, 30px) * 2.5) rgba(57,197,187,0.6),
     0 0 calc(var(--glow-radius, 30px) * 3.5) rgba(233,145,207,0.3);
-  filter: brightness(1.2);
+  filter: brightness(1.3);
+  animation: downbeat-flash 0.15s ease-out 1;
 }
 
-/* Held note pulsing — character stays active for more than 500ms */
+@keyframes downbeat-flash {
+  0% {
+    filter: brightness(1.6);
+    transform: scale(1.25) translateY(-4px);
+    text-shadow:
+      0 0 12px rgba(255,255,255,1),
+      0 0 25px rgba(255,255,255,0.9),
+      0 0 40px rgba(57,197,187,1),
+      0 0 70px rgba(57,197,187,0.5);
+  }
+  100% {
+    filter: brightness(1.3);
+    transform: scale(1.18) translateY(-3px);
+  }
+}
+
+/* Held note pulsing — character stays active for more than 500ms.
+   Gentle breathing: scale + brightness oscillate like a sustained vocal note. */
 #phrase-display .char.char-held {
-  animation: char-held-pulse 0.8s ease-in-out infinite;
+  animation: char-held-pulse 1.1s ease-in-out infinite;
 }
 
 @keyframes char-held-pulse {
-  0%, 100% { filter: brightness(1.1); transform: scale(var(--active-scale, 1.12)) translateY(-2px); }
-  50% { filter: brightness(1.3); transform: scale(calc(var(--active-scale, 1.12) * 1.04)) translateY(-3px); }
+  0%, 100% {
+    filter: brightness(1.12);
+    transform: scale(var(--active-scale, 1.12)) translateY(-2px);
+    text-shadow:
+      0 0 2px rgba(0,10,20,0.8),
+      0 0 12px rgba(255,255,255,0.85),
+      0 0 25px rgba(57,197,187,0.7),
+      0 0 50px rgba(57,197,187,0.3);
+  }
+  50% {
+    filter: brightness(1.32);
+    transform: scale(calc(var(--active-scale, 1.12) * 1.05)) translateY(-3px);
+    text-shadow:
+      0 0 2px rgba(0,10,20,0.8),
+      0 0 14px rgba(255,255,255,1),
+      0 0 30px rgba(57,197,187,0.9),
+      0 0 60px rgba(57,197,187,0.45),
+      0 0 80px rgba(233,145,207,0.15);
+  }
 }
 
-/* Sung characters — already voiced, remain clearly readable with soft teal tint */
+/* Sung characters — already voiced, remain clearly readable with soft teal tint.
+   The transition out of active is slower — the glow lingers like a vocal trail. */
 #phrase-display .char.sung {
-  opacity: 0.9;
+  opacity: 0.88;
   color: rgba(57,197,187,0.92);
   text-shadow: 0 0 2px rgba(0,10,20,0.5), 0 0 8px rgba(57,197,187,0.35);
   transform: scale(1.0);
   -webkit-text-stroke: 0.5px rgba(0,10,20,0.25);
+  /* Slow decay from active glow — text-shadow and filter trail off gracefully */
+  transition: opacity 0.35s ease-out, transform 0.4s ease-out, color 0.5s ease-out, text-shadow 0.6s ease-out, filter 0.4s ease-out;
+}
+
+/* ── Category color palette ──
+   Each semantic category gets a distinct hue so meaning is visible at a glance. */
+:root {
+  --cat-emotion:    rgb(235, 110, 140);   /* warm pink/rose */
+  --cat-water:      rgb(60, 200, 210);    /* teal/cyan */
+  --cat-nature:     rgb(100, 200, 130);   /* soft green */
+  --cat-time:       rgb(220, 180, 70);    /* amber/gold */
+  --cat-sound:      rgb(230, 130, 110);   /* coral/salmon */
+  --cat-voice:      rgb(230, 130, 110);   /* coral/salmon (alias) */
+  --cat-miku:       rgb(57, 197, 187);    /* #39C5BB */
+  --cat-movement:   rgb(90, 140, 230);    /* blue */
+  --cat-light:      rgb(240, 220, 140);   /* pale gold */
+  --cat-dark:       rgb(120, 90, 180);    /* purple */
+  --cat-bond:       rgb(200, 130, 210);   /* soft violet */
+  --cat-existential:rgb(160, 100, 220);   /* purple */
 }
 
 /* ── Semantic-colored characters ──
    Words the system "understands" get colored by their meaning.
-   3-tier system: upcoming (soft recognition glow) → active (blazing) → sung (afterglow) */
+   3-tier system: upcoming (soft recognition glow) → active (blazing) → sung (afterglow)
+   --semantic-color is set per-char by JS based on the word's category. */
 #phrase-display .char.semantic {
   --semantic-color: rgba(57,197,187,1);
   /* Upcoming semantic chars: recognized word gets a soft warm-up glow */
   color: rgba(220,235,245,0.6);
-  text-shadow: 0 0 4px var(--semantic-color);
-  opacity: 0.4;
+  text-shadow: 0 0 6px var(--semantic-color);
+  opacity: 0.45;
 }
 
-/* When ANY sibling in the semantic word is being sung, all siblings get ambient resonance */
+/* When ANY sibling in the semantic word is being sung, all siblings get ambient resonance.
+   The breathing animation draws the eye to the whole word — semantic recognition is felt. */
+@keyframes semantic-breathe {
+  0%, 100% { opacity: 0.55; filter: brightness(1.05); }
+  50%      { opacity: 0.72; filter: brightness(1.2); }
+}
 #phrase-display .char.semantic.semantic-resonance {
   color: var(--semantic-color);
   opacity: 0.55;
   text-shadow:
     0 0 3px rgba(0,10,20,0.5),
-    0 0 8px var(--semantic-color),
-    0 0 18px var(--semantic-color);
-  filter: brightness(1.05);
-  transition: opacity 0.15s ease, text-shadow 0.15s ease, color 0.15s ease;
+    0 0 10px var(--semantic-color),
+    0 0 24px var(--semantic-color),
+    0 0 40px color-mix(in srgb, var(--semantic-color) 40%, transparent);
+  animation: semantic-breathe 1.2s ease-in-out infinite;
+  transition: text-shadow 0.15s ease, color 0.15s ease;
 }
 
-/* Active syllable within a semantic word — BLAZES */
+/* Active syllable within a semantic word — BLAZES with a scale pop */
+@keyframes semantic-pop {
+  0%   { transform: scale(1.0); }
+  20%  { transform: scale(1.18); }
+  100% { transform: scale(1.08); }
+}
+@keyframes semantic-active-pulse {
+  0%, 100% { filter: brightness(1.5) saturate(1.5); }
+  50%      { filter: brightness(1.8) saturate(1.7); }
+}
 #phrase-display .char.semantic.active {
-  color: var(--semantic-color);
+  color: #fff;
   opacity: 1;
   text-shadow:
     0 0 2px rgba(0,10,20,0.6),
-    0 0 15px var(--semantic-color),
-    0 0 35px var(--semantic-color),
-    0 0 60px var(--semantic-color);
-  -webkit-text-stroke: 0.8px rgba(0,10,20,0.3);
-  filter: brightness(1.4) saturate(1.3);
+    0 0 18px var(--semantic-color),
+    0 0 45px var(--semantic-color),
+    0 0 80px var(--semantic-color),
+    0 0 120px color-mix(in srgb, var(--semantic-color) 35%, transparent);
+  -webkit-text-stroke: 0.8px rgba(0,10,20,0.2);
+  animation: semantic-pop 0.35s ease-out forwards, semantic-active-pulse 0.8s ease-in-out 0.35s infinite;
 }
 
-/* Sung syllable within a semantic word — warm afterglow */
+/* Sung syllable within a semantic word — warm afterglow that lingers */
 #phrase-display .char.semantic.sung {
   color: var(--semantic-color);
   opacity: 0.7;
-  text-shadow: 0 0 10px var(--semantic-color);
+  text-shadow:
+    0 0 10px var(--semantic-color),
+    0 0 25px color-mix(in srgb, var(--semantic-color) 30%, transparent);
   filter: brightness(0.9);
+}
+
+/* ── Semantic word underline — shimmering light beneath the text ──
+   Visible when ANY char in the word has the .semantic class.
+   Uses the --semantic-color from the first semantic char as the glow tint. */
+@keyframes semantic-underline-shimmer {
+  0%   { background-position: -200% center; opacity: 0; }
+  15%  { opacity: 0.7; }
+  100% { background-position: 200% center; opacity: 0; }
+}
+#phrase-display .word.semantic-word {
+  position: relative;
+}
+#phrase-display .word.semantic-word::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -2px;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--word-semantic-color, var(--cat-miku)) 35%,
+    rgba(255,255,255,0.8) 50%,
+    var(--word-semantic-color, var(--cat-miku)) 65%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: semantic-underline-shimmer 2.5s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* When a semantic word is actively being sung, the underline blazes to life */
+@keyframes semantic-underline-blaze {
+  0%   { background-position: -100% center; opacity: 0.5; height: 2px; }
+  30%  { opacity: 1; height: 3px; }
+  100% { background-position: 100% center; opacity: 0.6; height: 2px; }
+}
+#phrase-display .word.semantic-word.semantic-word-active::after {
+  animation: semantic-underline-blaze 1.2s ease-out infinite;
+  height: 3px;
+  opacity: 1;
+  box-shadow: 0 0 8px var(--word-semantic-color, var(--cat-miku)),
+              0 0 16px color-mix(in srgb, var(--word-semantic-color, var(--cat-miku)) 50%, transparent);
 }
 
 /* ── Mood-responsive lyric styling (water states) ──
@@ -781,25 +907,23 @@ html, body {
   filter: brightness(1.4) contrast(1.2);
 }
 
-/* Beat-emphasis hierarchy */
+/* Beat-emphasis hierarchy — downbeat active gets the strongest punch */
 #phrase-display .char.char-downbeat.active {
-  transform: scale(1.22) translateY(-3px);
-  filter: brightness(1.25);
+  transform: scale(1.24) translateY(-3px);
+  filter: brightness(1.3);
+  animation: downbeat-flash 0.15s ease-out 1;
 }
 
+/* Weak-beat chars (beats 2/4) active — slightly understated */
 #phrase-display .char.char-anticipation.active {
   transform: scale(1.06) translateY(-1px);
   opacity: 0.95;
+  filter: brightness(1.05);
 }
 
-/* Sustained word "held" state — for chars that stay active long */
-#phrase-display .char.char-held {
-  animation: char-held-shimmer 2s ease-in-out infinite;
-}
-
-@keyframes char-held-shimmer {
-  0%, 100% { opacity: 0.85; }
-  50% { opacity: 1; }
+/* Sustained word "held" + sustained class — longer words get a slower, deeper breath */
+#phrase-display .char.char-sustained.char-held {
+  animation: char-held-pulse 1.6s ease-in-out infinite;
 }
 
 /* ── Rhythm tap feedback — "touch the water" concentric ripples ── */
@@ -867,39 +991,235 @@ html, body {
   .rhythm-ripple::after { animation: none; opacity: 0; }
 }
 
-/* ── Semantic touch tooltip ── */
+/* ── Semantic touch tooltip — underwater bubble rising ── */
+@keyframes tooltip-surface {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(15px);
+    filter: blur(4px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(calc(-100% - 10px));
+    filter: blur(0px);
+  }
+}
+
+@keyframes tooltip-sink {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(calc(-100% - 10px));
+    filter: blur(0px);
+  }
+  40% {
+    opacity: 0.7;
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(15px);
+    filter: blur(6px);
+  }
+}
+
+@keyframes tooltip-glow {
+  0% { opacity: 0.06; }
+  100% { opacity: 0.15; }
+}
+
 #semantic-tooltip {
+  --tooltip-accent: #39C5BB;
   position: fixed;
   z-index: 70;
-  padding: 0.3rem 0.7rem;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
+  padding: clamp(0.4rem, 1.2vw, 0.6rem) clamp(0.7rem, 2vw, 1rem);
+  border-radius: 14px;
+  background: rgba(8, 20, 32, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(57, 197, 187, 0.35);
+  box-shadow:
+    0 0 18px rgba(57, 197, 187, 0.12),
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   font-family: "Inter", sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
   pointer-events: none;
   opacity: 0;
-  transform: translateX(-50%) translateY(5px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateX(-50%) translateY(15px);
+  filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.15rem, 0.5vw, 0.25rem);
+  white-space: nowrap;
+  max-width: 90vw;
 }
+
+/* Downward-pointing caret */
+#semantic-tooltip::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid rgba(57, 197, 187, 0.35);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* Surfacing animation — rising from the depths */
 #semantic-tooltip.visible {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  animation: tooltip-surface 0.45s cubic-bezier(0.22, 0.9, 0.36, 1) forwards;
+  pointer-events: auto;
 }
-.tooltip-category { font-weight: 500; }
+
+/* Sinking animation — descending back beneath the surface */
+#semantic-tooltip.sinking {
+  animation: tooltip-sink 0.35s cubic-bezier(0.55, 0, 0.85, 0.36) forwards;
+  pointer-events: none;
+}
+
+/* Subtle ambient glow pulse while visible */
+#semantic-tooltip.visible::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 50% 100%, var(--tooltip-accent), transparent 70%);
+  opacity: 0.1;
+  z-index: -1;
+  animation: tooltip-glow 2s ease-in-out infinite alternate;
+}
+
+/* Word display */
+.tooltip-word {
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 0 8px var(--tooltip-accent);
+}
+
+/* Category badge */
+.tooltip-category {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: clamp(0.65rem, 1.8vw, 0.78rem);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--cat-color, var(--tooltip-accent));
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.tooltip-icon {
+  font-size: clamp(0.7rem, 1.8vw, 0.85rem);
+  line-height: 1;
+}
+
+/* Reduce motion: skip animations, just show/hide */
+@media (prefers-reduced-motion: reduce) {
+  #semantic-tooltip.visible {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(calc(-100% - 10px));
+    filter: none;
+  }
+
+  #semantic-tooltip.sinking {
+    animation: none;
+    opacity: 0;
+  }
+
+  #semantic-tooltip.visible::before {
+    animation: none;
+  }
+}
 
 /* Tappable words */
 #phrase-display .word { pointer-events: auto; cursor: default; }
 #phrase-display .word:has(.semantic) { cursor: pointer; }
 
-/* Dense semantic phrase — extra glow for lyrics rich with meaning */
+/* Dense semantic phrase — 3+ meaningful words: the whole phrase radiates significance.
+   A gentle pulsing aura behind the text, plus boosted active glow. */
 #phrase-display.dense-semantic {
-  background: radial-gradient(ellipse at center, rgba(57, 197, 187, 0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(57, 197, 187, 0.10) 0%, rgba(233, 145, 207, 0.04) 50%, transparent 75%);
+  animation: dense-semantic-aura 2.5s ease-in-out infinite;
 }
+
+@keyframes dense-semantic-aura {
+  0%, 100% {
+    background: radial-gradient(ellipse at center, rgba(57, 197, 187, 0.10) 0%, rgba(233, 145, 207, 0.04) 50%, transparent 75%);
+  }
+  50% {
+    background: radial-gradient(ellipse at center, rgba(57, 197, 187, 0.16) 0%, rgba(233, 145, 207, 0.07) 55%, transparent 80%);
+  }
+}
+
+#phrase-display.dense-semantic .char {
+  /* All chars in a dense-semantic phrase get a subtle lift in base brightness */
+  filter: brightness(1.08);
+}
+
 #phrase-display.dense-semantic .char.active {
-  filter: brightness(1.3) saturate(1.3);
+  filter: brightness(1.35) saturate(1.3);
+  text-shadow:
+    0 0 2px rgba(0,10,20,0.8),
+    0 0 14px rgba(255,255,255,1),
+    0 0 30px rgba(57,197,187,0.9),
+    0 0 55px rgba(57,197,187,0.5),
+    0 0 80px rgba(233,145,207,0.25);
+}
+
+#phrase-display.dense-semantic .char.sung {
+  opacity: 0.92;
+  filter: brightness(1.05) saturate(1.1);
+}
+
+/* ── Lyric density visual modes ──
+   High density (>2.5 wps): rapid-fire lyrics — tighter, more electric energy.
+   Low density (<0.8 wps): sparse, breathing — softer, more contemplative. */
+
+/* High density: characters feel compressed and energized */
+#phrase-display.density-high .char {
+  letter-spacing: -0.01em;
+}
+#phrase-display.density-high .char.active {
+  filter: brightness(1.2) contrast(1.1);
+  transition: opacity 0.08s ease-out, transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.06s ease-out, text-shadow 0.12s ease-out, filter 0.08s ease-out;
+}
+#phrase-display.density-high .char.sung {
+  /* Fast lyrics — sung chars fade quicker to keep visual focus forward */
+  opacity: 0.7;
+  transition: opacity 0.2s ease-out, color 0.25s ease-out, text-shadow 0.3s ease-out;
+}
+
+/* Low density: characters breathe — wider, softer, more space */
+#phrase-display.density-low .char {
+  letter-spacing: 0.04em;
+}
+#phrase-display.density-low .char.active {
+  /* Slower, more luxurious glow bloom */
+  transition: opacity 0.12s ease-out, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s ease-out, text-shadow 0.4s ease-out, filter 0.25s ease-out;
+  text-shadow:
+    0 0 2px rgba(0,10,20,0.8),
+    0 0 14px rgba(255,255,255,0.85),
+    0 0 30px rgba(57,197,187,0.7),
+    0 0 60px rgba(57,197,187,0.35),
+    0 0 90px rgba(233,145,207,0.15);
+}
+#phrase-display.density-low .char.sung {
+  /* Sparse lyrics — sung chars linger with more presence */
+  opacity: 0.92;
+  transition: opacity 0.5s ease-out, color 0.6s ease-out, text-shadow 0.7s ease-out;
 }
 
 /* ── English subtitle ── */
@@ -1104,8 +1424,11 @@ body[data-subtitles="off"] .subtitle-english {
   #phrase-display .char { transition: none; }
   #phrase-display .char.active { transform: none; filter: none; }
   #phrase-display .char.char-anticipation { transform: none; }
-  #phrase-display .char.char-downbeat { transform: none; filter: none; }
+  #phrase-display .char.char-downbeat { transform: none; filter: none; animation: none; }
   #phrase-display .char.char-held { animation: none; }
+  #phrase-display.dense-semantic { animation: none; }
+  #phrase-display.density-high .char.active,
+  #phrase-display.density-low .char.active { transition: none; }
   #phrase-display.chorus .char.active { transform: none; }
   #phrase-display.mood-flowing .char.sung,
   #phrase-display.mood-stormy .char.sung {
@@ -1245,6 +1568,40 @@ body[data-subtitles="off"] .subtitle-english {
 
 .outro-card-inner {
   text-align: center;
+  max-width: min(420px, 85vw);
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.2rem, 3vw, 2rem);
+  background: rgba(5, 15, 25, 0.55);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  border: 1px solid rgba(57, 197, 187, 0.12);
+  border-radius: clamp(12px, 2vw, 20px);
+  box-shadow:
+    0 0 60px rgba(57, 197, 187, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Only animate the card surface when the outro is visible */
+#outro-card.visible .outro-card-inner {
+  animation: outro-surface 2s ease-out both;
+}
+
+#outro-card.fading {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+@keyframes outro-surface {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 #intro-song-title {
@@ -1268,74 +1625,192 @@ body[data-subtitles="off"] .subtitle-english {
 
 #outro-message {
   font-family: "Zen Maru Gothic", sans-serif;
-  font-size: clamp(1.2rem, 3.5vw, 2rem);
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
   font-weight: 300;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 1.2rem;
+  text-shadow: 0 0 20px rgba(57, 197, 187, 0.2);
 }
 
 #outro-stats {
   font-family: "Inter", sans-serif;
-  font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+  font-size: clamp(0.72rem, 1.4vw, 0.85rem);
   font-weight: 200;
-  letter-spacing: 0.1em;
-  color: rgba(57, 197, 187, 0.6);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
   min-width: 220px;
 }
 
-.outro-dominant {
-  margin-bottom: 0.8rem;
-  font-size: 1em;
-  color: rgba(255, 255, 255, 0.6);
-  letter-spacing: 0.12em;
+/* ── Category sentence ("This song was full of...") ── */
+.outro-category-sentence {
+  font-family: "Zen Maru Gothic", sans-serif;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 1rem;
+  line-height: 1.6;
 }
 
+.outro-cat-name {
+  font-weight: 400;
+  text-shadow: 0 0 8px currentColor;
+}
+
+/* ── Top words (word chips with category colors) ── */
+.outro-top-words {
+  margin-bottom: 1rem;
+}
+
+.outro-section-label {
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  margin-bottom: 0.5rem;
+}
+
+.outro-word-chips {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.outro-word-chip {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 20px;
+  font-family: "Zen Maru Gothic", sans-serif;
+  font-size: clamp(0.85rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: var(--chip-color, rgba(57, 197, 187, 0.8));
+  border: 1px solid var(--chip-color, rgba(57, 197, 187, 0.3));
+  background: rgba(255, 255, 255, 0.03);
+  text-shadow: 0 0 12px var(--chip-color, rgba(57, 197, 187, 0.3));
+  animation: chip-appear 0.8s ease-out both;
+}
+
+.outro-word-chip:nth-child(1) { animation-delay: 0.2s; }
+.outro-word-chip:nth-child(2) { animation-delay: 0.5s; }
+.outro-word-chip:nth-child(3) { animation-delay: 0.8s; }
+
+@keyframes chip-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Word count badge ── */
+.outro-word-count {
+  margin-bottom: 1rem;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.1em;
+}
+
+.outro-count-number {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: rgba(57, 197, 187, 0.7);
+  text-shadow: 0 0 8px rgba(57, 197, 187, 0.3);
+}
+
+/* ── Dominant emotion ── */
+.outro-dominant {
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.1em;
+}
+
+.outro-map-label {
+  margin-top: 0.5rem;
+}
+
+/* ── Emotion dimension bars ── */
 .outro-emotion-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.3rem;
+  animation: bar-slide-in 0.6s ease-out both;
+}
+
+.outro-emotion-row:nth-child(1) { animation-delay: 0.1s; }
+.outro-emotion-row:nth-child(2) { animation-delay: 0.25s; }
+.outro-emotion-row:nth-child(3) { animation-delay: 0.4s; }
+.outro-emotion-row:nth-child(4) { animation-delay: 0.55s; }
+
+@keyframes bar-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .outro-emotion-label {
-  width: 80px;
+  width: 70px;
   text-align: right;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 .outro-emotion-bar {
   flex: 1;
-  height: 5px;
-  background: rgba(57, 197, 187, 0.06);
+  height: 4px;
+  background: rgba(255, 255, 255, 0.04);
   border-radius: 10px;
   overflow: hidden;
   position: relative;
-  border: 1px solid rgba(57, 197, 187, 0.08);
-  animation: ripple-pulse 3s ease-in-out infinite;
 }
 
 .outro-emotion-fill {
   height: 100%;
-  background: linear-gradient(90deg, rgba(57, 197, 187, 0.5), rgba(57, 170, 165, 0.6), rgba(57, 197, 187, 0.4));
-  background-size: 200% 100%;
   border-radius: 10px;
-  transition: width 1.2s ease;
+  transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .outro-emotion-fill::after {
   content: "";
   position: absolute;
-  top: 0;
+  top: -1px;
   right: 0;
-  width: 3px;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.3);
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  filter: blur(1px);
+  background: rgba(255, 255, 255, 0.5);
+  filter: blur(2px);
+  animation: bar-glow 2s ease-in-out infinite;
+}
+
+@keyframes bar-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.outro-emotion-pct {
+  width: 32px;
+  text-align: left;
+  font-size: 0.6rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 /* ═══════════════════════════════════════
