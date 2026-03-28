@@ -712,7 +712,7 @@ function updatePhraseDisplay(phrase, position) {
             phraseDisplay.dataset.phrase = "";
             phraseDisplay.classList.remove("fade-out-phrase");
           }
-        }, 300);
+        }, 500);
         phraseDisplay.dataset.phrase = "";
         phraseChars = [];
       }
@@ -756,7 +756,7 @@ function updatePhraseDisplay(phrase, position) {
             phraseDisplay.classList.remove("phrase-enter");
             phraseDisplay.removeEventListener("animationend", onEnd);
           });
-        }, 200);
+        }, 350);
       } else {
         phraseDisplay.innerHTML = "";
         buildPhraseChars(phrase);
