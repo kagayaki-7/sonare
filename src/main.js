@@ -790,66 +790,114 @@ function updatePhraseDisplay(phrase, position) {
       lastPhraseEndTime = phrase.endTime;
     }
 
-    // Update char states with anticipation glow, downbeat emphasis, held notes, and interpolation
+    // ── Disney-quality character state machine ──
+    // Longer foreshadowing, proximity glow, multi-stage anticipation
     const currentBeat = player?.findBeat?.(position);
     const isCurrentDownbeat = currentBeat && currentBeat.position === 1;
+
+    // Find the currently active character index for proximity effects
+    let activeCharIdx = -1;
+    for (let ci = 0; ci < phraseChars.length; ci++) {
+      if (position >= phraseChars[ci].startTime && position < phraseChars[ci].endTime) {
+        activeCharIdx = ci;
+        break;
+      }
+    }
+
     for (let ci = 0; ci < phraseChars.length; ci++) {
       const ch = phraseChars[ci];
       if (!ch.el) continue;
       const isSemantic = ch.semanticColor ? " semantic" : "";
 
       if (position >= ch.startTime && position < ch.endTime) {
-        // Active character
+        // ── ACTIVE ──
         const activeDuration = position - ch.startTime;
         let extra = "";
-        // Downbeat emphasis: if this char's activation is on a downbeat
-        if (isCurrentDownbeat && activeDuration < 150) {
-          extra += " char-downbeat";
-        }
-        // Held note pulsing: active for more than 500ms
-        if (activeDuration > 500) {
-          extra += " char-held";
-        }
-        // Preserve word-timing class (sustained/staccato) through className rewrite
-        if (ch.timingClass) {
-          extra += " " + ch.timingClass;
-        }
+        if (isCurrentDownbeat && activeDuration < 150) extra += " char-downbeat";
+        if (activeDuration > 500) extra += " char-held";
+        if (ch.timingClass) extra += " " + ch.timingClass;
         ch.el.className = "char active" + isSemantic + extra;
-        // Clear any interpolated opacity from anticipation phase
+        ch.el.style.removeProperty("opacity");
+        ch.el.style.removeProperty("transform");
         ch.el.style.removeProperty("--char-glow-t");
+
       } else if (position >= ch.endTime) {
+        // ── SUNG ──
+        // Proximity afterglow: recently-sung chars near the active one stay brighter
+        const timeSinceSung = position - ch.endTime;
+        const distFromActive = activeCharIdx >= 0 ? Math.abs(ci - activeCharIdx) : 99;
         ch.el.className = "char sung" + isSemantic;
-        ch.el.style.removeProperty("--char-glow-t");
-      } else {
-        // Upcoming character — check for anticipation window (250ms before start)
-        const timeUntilActive = ch.startTime - position;
-        if (timeUntilActive <= 250 && timeUntilActive > 0) {
-          // Interpolate glow intensity: eased curve for a "gathering breath" feel
-          const tLinear = 1 - (timeUntilActive / 250);
-          // Ease-in-quad: slow start, accelerating toward activation
-          const t = tLinear * tLinear;
-          ch.el.className = "char char-anticipation" + isSemantic;
-          // Opacity ramps from dim (0.25) to pre-active (0.65) with breath-like easing
-          ch.el.style.opacity = (0.25 + t * 0.40).toFixed(3);
-          // Subtle scale growth: 1.0 -> 1.04 as activation approaches
-          ch.el.style.transform = `scale(${(1 + t * 0.04).toFixed(4)})`;
+        ch.el.style.removeProperty("transform");
+
+        if (timeSinceSung < 1200 && distFromActive <= 3) {
+          // Trailing warmth — chars just sung near the active char glow brighter
+          const recency = 1 - (timeSinceSung / 1200);
+          const proximity = 1 - (distFromActive / 4);
+          const afterglow = recency * proximity * 0.12;
+          ch.el.style.opacity = (0.88 + afterglow).toFixed(3);
         } else {
+          ch.el.style.removeProperty("opacity");
+        }
+        ch.el.style.removeProperty("--char-glow-t");
+
+      } else {
+        // ── UPCOMING ──
+        const timeUntilActive = ch.startTime - position;
+
+        if (timeUntilActive <= 600 && timeUntilActive > 0) {
+          // Multi-stage anticipation: 600ms foreshadowing window
+          // Stage 1 (600-300ms): distant shimmer — barely noticeable brightening
+          // Stage 2 (300-100ms): gathering breath — clear glow buildup
+          // Stage 3 (100-0ms):   imminent flash — nearly active brightness
+          const tLinear = 1 - (timeUntilActive / 600);
+
+          let opacity, scale, glowClass;
+          if (timeUntilActive > 300) {
+            // Stage 1: distant shimmer (ease-in-cubic for very slow start)
+            const t1 = (tLinear / 0.5); // 0→1 over first half
+            const t1e = t1 * t1 * t1;
+            opacity = 0.25 + t1e * 0.12; // 0.25→0.37
+            scale = 1.0;
+            glowClass = "char char-foreshadow" + isSemantic;
+          } else if (timeUntilActive > 100) {
+            // Stage 2: gathering breath (ease-in-out-quad)
+            const t2 = 1 - ((timeUntilActive - 100) / 200); // 0→1
+            const t2e = t2 < 0.5 ? 2 * t2 * t2 : 1 - (-2 * t2 + 2) * (-2 * t2 + 2) / 2;
+            opacity = 0.37 + t2e * 0.25; // 0.37→0.62
+            scale = 1.0 + t2e * 0.03; // 1.0→1.03
+            glowClass = "char char-anticipation" + isSemantic;
+          } else {
+            // Stage 3: imminent (ease-out — fast start, smooth landing)
+            const t3 = 1 - (timeUntilActive / 100);
+            const t3e = 1 - (1 - t3) * (1 - t3);
+            opacity = 0.62 + t3e * 0.28; // 0.62→0.90
+            scale = 1.03 + t3e * 0.04; // 1.03→1.07
+            glowClass = "char char-imminent" + isSemantic;
+          }
+
+          ch.el.className = glowClass;
+          ch.el.style.opacity = opacity.toFixed(3);
+          ch.el.style.transform = `scale(${scale.toFixed(4)})`;
+          ch.el.style.setProperty("--char-glow-t", tLinear.toFixed(3));
+        } else {
+          // Beyond 600ms — proximity wave: chars near the active point brighten subtly
           ch.el.className = "char" + isSemantic;
-          // Interpolation for chars between two start times:
-          // if next char is active, glow this one slightly based on proximity
-          if (ci + 1 < phraseChars.length) {
-            const nextCh = phraseChars[ci + 1];
-            if (position >= nextCh.startTime && position < nextCh.endTime) {
-              // Previous char to active one gets a subtle residual glow
-              ch.el.style.opacity = "0.35";
+          ch.el.style.removeProperty("transform");
+
+          if (activeCharIdx >= 0) {
+            const charDist = ci - activeCharIdx;
+            // Only brighten upcoming chars (positive distance), up to 6 chars ahead
+            if (charDist > 0 && charDist <= 6) {
+              const wave = 1 - (charDist / 7);
+              const waveOpacity = 0.25 + wave * 0.1;
+              ch.el.style.opacity = waveOpacity.toFixed(3);
             } else {
               ch.el.style.removeProperty("opacity");
-              ch.el.style.removeProperty("transform");
             }
           } else {
             ch.el.style.removeProperty("opacity");
-            ch.el.style.removeProperty("transform");
           }
+          ch.el.style.removeProperty("--char-glow-t");
         }
       }
     }

@@ -308,16 +308,49 @@ export const waterFragmentShader = `
     float sss = max(vWaveHeight, 0.0) * 0.3;
     waterCol += vec3(0.05, 0.15, 0.2) * sss;
 
-    // ── 4. Caustic pattern (procedural, subtle) ──
-    float c1 = sin(vWorldPos.x * 0.9 + uTime * 0.4) * sin(vWorldPos.z * 0.7 + uTime * 0.35);
-    float c2 = sin(vWorldPos.x * 1.4 - uTime * 0.25 + 1.7) * sin(vWorldPos.z * 1.2 + uTime * 0.5 + 0.9);
-    float c3 = sin(vWorldPos.x * 2.1 + uTime * 0.55 + 3.1) * sin(vWorldPos.z * 1.8 - uTime * 0.4 + 2.0);
-    float caustic = (c1 + c2 + c3) * 0.333 + 0.5;
-    caustic = pow(caustic, 4.0);
+    // ── 4. Voronoi caustic pattern (organic, high-quality) ──
+    // Hash function for pseudo-random cell positions
+    vec2 causticUV = vWorldPos.xz * 0.12;
+    float caustic = 0.0;
+
+    // Two octaves of Voronoi for organic look
+    for (int oct = 0; oct < 2; oct++) {
+      float scale = (oct == 0) ? 1.0 : 2.2;
+      float speed = (oct == 0) ? 0.3 : 0.45;
+      float weight = (oct == 0) ? 0.65 : 0.35;
+      vec2 uv = causticUV * scale + uTime * speed * vec2(0.13, -0.09) * (1.0 + float(oct) * 0.5);
+      vec2 ip = floor(uv);
+      vec2 fp = fract(uv);
+
+      float d1 = 8.0; // nearest distance
+      float d2 = 8.0; // second nearest
+      for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+          vec2 neighbor = vec2(float(x), float(y));
+          // Animated cell centers
+          vec2 cellId = ip + neighbor;
+          vec2 cellRand = fract(sin(vec2(
+            dot(cellId, vec2(127.1, 311.7)),
+            dot(cellId, vec2(269.5, 183.3))
+          )) * 43758.5453);
+          // Gentle drift so caustics swim
+          vec2 cellPos = neighbor + cellRand + 0.3 * sin(uTime * 0.4 + 6.2831 * cellRand) - fp;
+          float d = dot(cellPos, cellPos);
+          if (d < d1) { d2 = d1; d1 = d; }
+          else if (d < d2) { d2 = d; }
+        }
+      }
+      // F2 - F1 gives bright caustic lines between cells
+      float voronoi = d2 - d1;
+      caustic += pow(voronoi, 1.5) * weight;
+    }
+
+    caustic = pow(caustic, 2.0) * 3.0;
+    caustic = clamp(caustic, 0.0, 1.0);
     // Caustics fade with distance — visible mainly near/mid range
-    float causticFade = 1.0 - smoothstep(15.0, 60.0, camDist);
-    float causticStrength = caustic * 0.15 * causticFade * (0.5 + uRippleIntensity * 0.6);
-    waterCol += vec3(0.25, 0.55, 0.65) * causticStrength;
+    float causticFade = 1.0 - smoothstep(15.0, 70.0, camDist);
+    float causticStrength = caustic * 0.2 * causticFade * (0.5 + uRippleIntensity * 0.8);
+    waterCol += vec3(0.3, 0.6, 0.7) * causticStrength;
 
     // ── 5. Edge foam ──
     // Only the tallest wave crests get a subtle foam line
