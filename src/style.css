@@ -1372,7 +1372,6 @@ body[data-subtitles="off"] .subtitle-english {
   #phrase-display.dense-semantic { animation: none; }
   #phrase-display.density-high .char.active,
   #phrase-display.density-low .char.active { transition: none; }
-  }
 }
 
 /* Focus-visible ring for keyboard navigation */

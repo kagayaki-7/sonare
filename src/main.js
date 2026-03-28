@@ -11,12 +11,12 @@ import { Player } from "textalive-app-api";
 import { SonareScene } from "./scene.js";
 import { SONGS } from "./songs.js";
 import { initSeed, deriveSeedFingerprint } from "./prng.js";
-import { matchWord, LyricMemory, CATEGORY, CATEGORY_COLORS } from "./lyricSemantics.js";
+import { matchWord, LyricMemory } from "./lyricSemantics.js";
 import { getLang, setLanguage, t, applyToDOM } from "./i18n.js";
 import { getTranslations, getSubtitleForPhrase } from "./translations.js";
 
 /** @type {import('./songs.js').SongDefinition[]} */
-const ALL_SONGS = SONGS;
+const ALL_SONGS = SONGS; // alias kept for readability across 30+ call sites
 
 // ─── Seed system ───
 const { seed, hex: seedHex } = initSeed();
@@ -121,8 +121,7 @@ function init() {
   // Create 3D scene with procedural seed
   try {
     scene = new SonareScene(canvasContainer, seed);
-    const quality = scene.detectQuality();
-    // Low-end GPU: scene.detectQuality() returns "low" and scene auto-adjusts
+    scene.detectQuality(); // auto-adjusts for GPU capability
   } catch (err) {
     console.error("[Sonare] Failed to initialize 3D scene:", err);
     if (loadingStatus) loadingStatus.textContent = t("loading.status.gfx-error");
@@ -1160,12 +1159,14 @@ function updateLyricMood(valence, arousal) {
   }
 
   // Smooth CSS custom properties toward targets — never jump, always glide.
-  // This prevents text from jittering frame-to-frame as V/A values fluctuate.
+  // Uses exponential decay (~60fps assumed for CSS properties since onTimeUpdate
+  // fires from the TextAlive timer, not rAF; consistent enough for visual smoothing).
   const root = phraseDisplay.style;
   const targetGlow = 18 + arousal * 30; // 18-48px (narrower, calmer range)
   const targetScale = 1.08 + arousal * 0.08; // 1.08-1.16 (subtle, not jarring)
-  _smoothGlow = _smoothGlow + (_smoothGlow === 0 ? targetGlow : (targetGlow - _smoothGlow) * 0.04);
-  _smoothScale = _smoothScale + (_smoothScale === 0 ? targetScale : (targetScale - _smoothScale) * 0.04);
+  const smoothSpeed = 1 - Math.exp(-2.5 * (1 / 60)); // ~0.04 at 60fps, frame-rate aware
+  _smoothGlow = _smoothGlow === 0 ? targetGlow : _smoothGlow + (targetGlow - _smoothGlow) * smoothSpeed;
+  _smoothScale = _smoothScale === 0 ? targetScale : _smoothScale + (targetScale - _smoothScale) * smoothSpeed;
   root.setProperty("--glow-radius", `${_smoothGlow.toFixed(0)}px`);
   root.setProperty("--active-scale", _smoothScale.toFixed(3));
   // Letter-spacing is set by mood class only — no per-frame changes that cause text reflow

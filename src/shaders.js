@@ -1,6 +1,6 @@
 /**
  * @module shaders
- * GLSL shaders for the Stellar Verses 3D scene.
+ * GLSL shaders for the Sonare 3D scene.
  * Extracted from scene.js for maintainability.
  *
  * All shaders use Three.js built-in uniforms (modelViewMatrix, projectionMatrix, normalMatrix)

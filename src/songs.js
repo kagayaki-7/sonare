@@ -34,7 +34,6 @@
  * @typedef {Object} SongDefinition
  * @property {string} title - Display title of the song.
  * @property {string} artist - Display artist name.
- * @property {string} [badge] - Optional badge label (e.g., "Grand Prize").
  * @property {string} url - Piapro URL for the song audio.
  * @property {SongVideoIds} video - TextAlive video analysis IDs (may be empty until published).
  * @property {SongTheme} theme - Visual theme parameters for the 3D scene.

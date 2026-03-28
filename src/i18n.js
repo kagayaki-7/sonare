@@ -105,12 +105,6 @@ export const strings = {
     en: "Neon reflections at night",
   },
 
-  // ─── Song card badge ───
-  "badge.grand-prize": {
-    ja: "グランプリ",
-    en: "Grand Prize",
-  },
-
   // ─── Intro card ───
   // (song title and artist are kept bilingual as-is; no separate i18n needed)
 

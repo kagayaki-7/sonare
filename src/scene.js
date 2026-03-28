@@ -232,7 +232,6 @@ export class SonareScene {
     // Frame budget monitoring
     this._frameTimes = [];
     this._frameDropCount = 0;
-    this._frameBoostCount = 0;
 
     // Vocal amplitude
     this._vocalAmplitude = 0;
@@ -289,7 +288,7 @@ export class SonareScene {
       "climax", "chordResolution", "ripple", "semantic",
       "bloomSurge", "familiarTerritory", "densephrase",
     ];
-    this._MAX_SIMULTANEOUS_EFFECTS = 3;
+    this._MAX_SIMULTANEOUS_EFFECTS = 5;
 
     // ─── Lyric-active dimming (B2: lyric-first visual hierarchy) ───
     this._lyricActive = false;
@@ -925,8 +924,11 @@ export class SonareScene {
   }
 
   /**
-   * Set the current song section type for camera and fog adjustments.
+   * Apply section-aware camera and fog modifiers.
+   * Adjusts camera distance, fog density, and star speed per section type.
    * @param {"verse"|"chorus"|"bridge"} type - The section type.
+   */
+  _applySectionModifiers(type) {
     if (type === this._currentSection) return;
     this._currentSection = type;
 
@@ -1301,7 +1303,7 @@ export class SonareScene {
    * @param {string} section - "verse", "chorus", or "bridge".
    */
   setSection(section) {
-    this._currentSection = section;
+    this._applySectionModifiers(section);
   }
 
   /**
