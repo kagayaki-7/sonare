@@ -1132,40 +1132,38 @@ export class SonareScene {
     if (this._lyricDensity > 2.0)
       active.push({ name: "densephrase", priority: 6 });
 
-    if (active.length <= this._MAX_SIMULTANEOUS_EFFECTS) return;
+    // Allow up to 5 simultaneous effects (was 3 — too aggressive, caused sudden deaths)
+    if (active.length <= 5) return;
 
-    // Sort by priority (highest priority = lowest number), keep top 3
+    // Sort by priority (highest priority = lowest number), keep top 5
     active.sort((a, b) => a.priority - b.priority);
-    const toSuppress = active.slice(this._MAX_SIMULTANEOUS_EFFECTS);
+    const toSuppress = active.slice(5);
 
+    // Soft suppress: accelerate decay rather than hard-kill.
+    // This prevents the jarring "effects just die" feeling.
     for (const fx of toSuppress) {
       switch (fx.name) {
         case "climax":
-          this._climaxIntensity = 0;
-          this._climaxBloomSurge = 0;
-          this._climaxParticleBoost = 0;
+          this._climaxIntensity *= 0.85;
           break;
         case "chordResolution":
-          this._chordFlash = 0;
+          this._chordFlash *= 0.7;
           break;
         case "ripple":
-          // Fade out active shockwaves quickly
           for (const ring of this.shockwaves) {
-            ring.material.opacity *= 0.1;
+            ring.material.opacity *= 0.7;
           }
           break;
         case "semantic":
-          this.semanticDecay = 0;
+          this.semanticDecay *= 0.8;
           break;
         case "bloomSurge":
-          this._sceneFxBloom = 0;
+          this._sceneFxBloom *= 0.8;
           break;
         case "familiarTerritory":
-          // Suppress familiar territory bloom boost
           this._familiarBloomTarget = null;
           break;
         case "densephrase":
-          // Let density effects be suppressed silently
           break;
       }
     }
@@ -1757,13 +1755,14 @@ export class SonareScene {
     this._chordFlash = smoothDamp(this._chordFlash, 0, 4.0, delta);
 
     // Beat: snappy rise, smooth decay
-    this.beatIntensity = smoothDamp(this.beatIntensity, 0, 4.0, delta);
+    this.beatIntensity = smoothDamp(this.beatIntensity, 0, 2.5, delta);
 
     // Decay semantic scene effects smoothly
-    this._sceneFxExposure = smoothDamp(this._sceneFxExposure, 0, 1.5, delta);
-    this._sceneFxBloom = smoothDamp(this._sceneFxBloom, 0, 2.0, delta);
-    this._sceneFxFog = smoothDamp(this._sceneFxFog, 0, 1.5, delta);
-    this._sceneFxWarm = smoothDamp(this._sceneFxWarm, 0, 1.0, delta);
+    // Effects decay slowly — they should linger and overlap, not vanish instantly
+    this._sceneFxExposure = smoothDamp(this._sceneFxExposure, 0, 0.8, delta);
+    this._sceneFxBloom = smoothDamp(this._sceneFxBloom, 0, 0.9, delta);
+    this._sceneFxFog = smoothDamp(this._sceneFxFog, 0, 0.8, delta);
+    this._sceneFxWarm = smoothDamp(this._sceneFxWarm, 0, 0.5, delta);
     this._harmonicMode = smoothDamp(this._harmonicMode, this._harmonicModeTarget, 1.5, delta);
 
     // Apply mood to renderer (with semantic scene effects layered on)

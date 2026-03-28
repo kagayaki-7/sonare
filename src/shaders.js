@@ -226,6 +226,13 @@ export const waterVertexShader = `
     float phi3 = uTime * 1.1 + 3.7;
     pos += gerstner(pos.xz, d3, 0.25, A3, w3, phi3, T, B);
 
+    // Wave 4: micro-ripples (fine surface texture, very subtle)
+    vec2 d4 = normalize(vec2(-0.7, -0.5));
+    float A4 = 0.03 * rippleBoost;
+    float w4 = 1.5;
+    float phi4 = uTime * 1.8 + 5.2;
+    pos += gerstner(pos.xz, d4, 0.15, A4, w4, phi4, T, B);
+
     // Compute displaced normal from tangent cross bitangent
     vec3 displNormal = normalize(cross(B, T));
     vNormal = normalize(normalMatrix * displNormal);
@@ -282,6 +289,20 @@ export const waterFragmentShader = `
     moonSpec *= (1.0 + uRippleIntensity * 0.5);
     waterCol += moonSpec;
 
+    // ── 2b. Sparkles — sharp specular highlights dancing across the surface ──
+    // High-frequency normal perturbation creates glittering moonlight points
+    vec3 sparkleN = N;
+    sparkleN.x += sin(vWorldPos.x * 8.0 + uTime * 2.1) * cos(vWorldPos.z * 6.0 - uTime * 1.7) * 0.15;
+    sparkleN.z += cos(vWorldPos.x * 7.0 - uTime * 1.3) * sin(vWorldPos.z * 9.0 + uTime * 2.4) * 0.15;
+    sparkleN = normalize(sparkleN);
+    vec3 sparkleH = normalize(V + uMoonDir);
+    float sparkleSpec = pow(max(dot(sparkleN, sparkleH), 0.0), 512.0);
+    // Sparkles are bright white dots, stronger when music is active
+    float sparkleIntensity = sparkleSpec * (1.5 + uRippleIntensity * 2.0);
+    // Fade sparkles with distance for natural falloff
+    sparkleIntensity *= (1.0 - smoothstep(25.0, 80.0, camDist));
+    waterCol += vec3(0.95, 0.97, 1.0) * sparkleIntensity;
+
     // ── 3. Subsurface scatter approximation ──
     // Near crests (positive waveHeight), light passes through thin water
     float sss = max(vWaveHeight, 0.0) * 0.3;
@@ -295,8 +316,8 @@ export const waterFragmentShader = `
     caustic = pow(caustic, 4.0);
     // Caustics fade with distance — visible mainly near/mid range
     float causticFade = 1.0 - smoothstep(15.0, 60.0, camDist);
-    float causticStrength = caustic * 0.12 * causticFade * (0.5 + uRippleIntensity * 0.5);
-    waterCol += vec3(0.3, 0.6, 0.7) * causticStrength;
+    float causticStrength = caustic * 0.15 * causticFade * (0.5 + uRippleIntensity * 0.6);
+    waterCol += vec3(0.25, 0.55, 0.65) * causticStrength;
 
     // ── 5. Edge foam ──
     // Only the tallest wave crests get a subtle foam line

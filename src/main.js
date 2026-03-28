@@ -69,6 +69,8 @@ let lastWordIndex = -1;
 /** @type {Array<{el: HTMLSpanElement, startTime: number, endTime: number, semanticColor?: string, wordDuration?: number}>} */
 let phraseChars = [];
 let currentMoodClass = "mood-still";
+let _smoothGlow = 0;    // smoothed glow radius (CSS property)
+let _smoothScale = 0;   // smoothed active scale (CSS property)
 /** @type {Set<string>} Track phrase repetition for visual callbacks */
 let seenPhrases = new Set();
 let rhythmCombo = 0;
@@ -1111,11 +1113,16 @@ function updateLyricMood(valence, arousal) {
     currentMoodClass = moodClass;
   }
 
+  // Smooth CSS custom properties toward targets — never jump, always glide.
+  // This prevents text from jittering frame-to-frame as V/A values fluctuate.
   const root = phraseDisplay.style;
-  const glowRadius = (12 + arousal * 50) | 0;
-  root.setProperty("--glow-radius", `${glowRadius}px`);
-  root.setProperty("--active-scale", (1.08 + arousal * 0.15).toFixed(3));
-  root.setProperty("--mood-spacing", `${(0.14 - arousal * 0.10).toFixed(3)}em`);
+  const targetGlow = 18 + arousal * 30; // 18-48px (narrower, calmer range)
+  const targetScale = 1.08 + arousal * 0.08; // 1.08-1.16 (subtle, not jarring)
+  _smoothGlow = _smoothGlow + (_smoothGlow === 0 ? targetGlow : (targetGlow - _smoothGlow) * 0.04);
+  _smoothScale = _smoothScale + (_smoothScale === 0 ? targetScale : (targetScale - _smoothScale) * 0.04);
+  root.setProperty("--glow-radius", `${_smoothGlow.toFixed(0)}px`);
+  root.setProperty("--active-scale", _smoothScale.toFixed(3));
+  // Letter-spacing is set by mood class only — no per-frame changes that cause text reflow
 }
 
 // ─── Emotional journey visualization ───
