@@ -533,34 +533,34 @@ html, body {
 /* Stage 1: Distant foreshadow (600-300ms before) — barely perceptible shimmer */
 #phrase-display .char.char-foreshadow {
   animation: none; /* cancel entrance fill */
-  color: rgba(225,240,250,0.58);
+  color: rgba(225,240,250,0.65);
   text-shadow:
     0 0 3px rgba(0,10,20,0.5),
-    0 0 6px rgba(57,197,187,0.06);
+    0 0 8px rgba(57,197,187,0.15);
   transition: opacity 0.3s ease-out, color 0.3s ease-out, text-shadow 0.3s ease-out;
 }
 
 /* Stage 2: Anticipation (300-100ms before) — clear gathering glow */
 #phrase-display .char.char-anticipation {
   animation: none;
-  color: rgba(235,245,255,0.72);
+  color: rgba(235,245,255,0.78);
   text-shadow:
     0 0 3px rgba(0,10,20,0.5),
-    0 0 6px rgba(255,255,255,0.2),
-    0 0 14px rgba(57,197,187,0.2),
-    0 0 28px rgba(57,197,187,0.08);
+    0 0 8px rgba(255,255,255,0.3),
+    0 0 16px rgba(57,197,187,0.35),
+    0 0 30px rgba(57,197,187,0.15);
   transition: opacity 0.15s ease-out, transform 0.2s ease-out, color 0.18s ease-out, text-shadow 0.2s ease-out;
 }
 
 /* Stage 3: Imminent (100-0ms before) — nearly there, bright pre-flash */
 #phrase-display .char.char-imminent {
   animation: none;
-  color: rgba(245,250,255,0.88);
+  color: rgba(245,250,255,0.92);
   text-shadow:
     0 0 2px rgba(0,10,20,0.6),
-    0 0 8px rgba(255,255,255,0.5),
-    0 0 20px rgba(57,197,187,0.4),
-    0 0 40px rgba(57,197,187,0.15);
+    0 0 10px rgba(255,255,255,0.55),
+    0 0 24px rgba(57,197,187,0.45),
+    0 0 44px rgba(57,197,187,0.25);
   filter: brightness(1.05);
   transition: opacity 0.08s ease-out, transform 0.1s ease-out, color 0.1s ease-out, text-shadow 0.12s ease-out, filter 0.1s ease-out;
 }

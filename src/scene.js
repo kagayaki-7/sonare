@@ -30,52 +30,60 @@ import {
 // ─── Mood presets (water states) ───
 const MOOD_PRESETS = {
   still: {
-    bloomStrength: 0.4,     // glass-still lake: subtle surface luminance
-    bloomRadius: 0.7,       // wide, soft glow — light diffusing on calm water
-    fogDensity: 0.007,      // high water clarity — deep, still, transparent
+    bloomStrength: 0.4,       // glass-still lake: subtle surface luminance
+    bloomRadius: 0.7,         // wide, soft glow — light diffusing on calm water
+    fogDensity: 0.007,        // high water clarity — deep, still, transparent
     cameraZ: 55,
-    starSpeed: 0.003,       // barely perceptible drift — almost frozen
-    beatScale: 0.08,        // minimal beat response — undisturbed surface
-    shockwaveOpacity: 0.02, // near-invisible ripples — glassy calm
-    shockwaveScale: 10,     // tight, small ripples when they do appear
-    particleRate: 0.2,      // sparse — only occasional motes in still water
-    exposure: 0.85,         // slightly dim — quiet, contemplative
+    starSpeed: 0.003,         // barely perceptible drift — almost frozen
+    beatScale: 0.08,          // minimal beat response — undisturbed surface
+    shockwaveOpacity: 0.06,   // subtle but perceptible ripples
+    shockwaveScale: 10,       // tight, small ripples when they do appear
+    particleRate: 0.2,        // sparse — only occasional motes in still water
+    exposure: 0.85,           // slightly dim — quiet, contemplative
+    causticStrength: 0.3,     // subdued — light barely reaching through still depths
+    colorTemperature: -0.3,   // cold, moonlit blue
   },
   gentle: {
-    bloomStrength: 0.6,     // warm underwater glow — soft bioluminescence
-    bloomRadius: 0.55,      // moderate diffusion — light through gentle ripples
-    fogDensity: 0.005,      // good clarity with slight warmth in the water
+    bloomStrength: 0.6,       // warm underwater glow — soft bioluminescence
+    bloomRadius: 0.55,        // moderate diffusion — light through gentle ripples
+    fogDensity: 0.005,        // good clarity with slight warmth in the water
     cameraZ: 42,
-    starSpeed: 0.006,       // soft drift — lazy currents
-    beatScale: 0.18,        // responsive but soft beats
-    shockwaveOpacity: 0.06, // soft ripples — visible but delicate
-    shockwaveScale: 14,     // medium ripple spread
-    particleRate: 0.5,      // moderate — suspended particles catching light
-    exposure: 1.0,          // natural, warm exposure
+    starSpeed: 0.006,         // soft drift — lazy currents
+    beatScale: 0.18,          // responsive but soft beats
+    shockwaveOpacity: 0.15,   // soft ripples — visible and delicate
+    shockwaveScale: 14,       // medium ripple spread
+    particleRate: 0.5,        // moderate — suspended particles catching light
+    exposure: 1.0,            // natural, warm exposure
+    causticStrength: 0.5,     // moderate — warm caustic glow
+    colorTemperature: 0.2,    // warm teal
   },
   flowing: {
-    bloomStrength: 0.7,     // brighter caustics dancing on the surface
-    bloomRadius: 0.4,       // tighter bloom — sharper light refraction
-    fogDensity: 0.004,      // clearer water, stronger currents push clarity
+    bloomStrength: 0.7,       // brighter caustics dancing on the surface
+    bloomRadius: 0.4,         // tighter bloom — sharper light refraction
+    fogDensity: 0.004,        // clearer water, stronger currents push clarity
     cameraZ: 48,
-    starSpeed: 0.014,       // visible current flow — water in motion
-    beatScale: 0.25,        // strong beat response — waves cresting
-    shockwaveOpacity: 0.12, // prominent ripples — active water surface
-    shockwaveScale: 20,     // wider wave spread
-    particleRate: 0.65,     // active — debris and light carried by current
-    exposure: 1.05,         // bright, energized surface
+    starSpeed: 0.014,         // visible current flow — water in motion
+    beatScale: 0.25,          // strong beat response — waves cresting
+    shockwaveOpacity: 0.25,   // prominent ripples — active water surface
+    shockwaveScale: 20,       // wider wave spread
+    particleRate: 0.65,       // active — debris and light carried by current
+    exposure: 1.05,           // bright, energized surface
+    causticStrength: 0.8,     // bright — caustic patterns clearly dancing
+    colorTemperature: 0.0,    // neutral
   },
   stormy: {
-    bloomStrength: 0.9,     // foam-like bloom — white water crests
-    bloomRadius: 0.5,       // wide turbulent glow — churning luminescence
-    fogDensity: 0.003,      // spray and mist reduce deep visibility
+    bloomStrength: 0.9,       // foam-like bloom — white water crests
+    bloomRadius: 0.5,         // wide turbulent glow — churning luminescence
+    fogDensity: 0.003,        // spray and mist reduce deep visibility
     cameraZ: 40,
-    starSpeed: 0.018,       // rapid current — turbulent rotation
-    beatScale: 0.35,        // maximum beat impact — waves crashing
-    shockwaveOpacity: 0.18, // intense ripples — storm on the lake
-    shockwaveScale: 25,     // massive wave spread
-    particleRate: 0.9,      // dense — spray, foam, churning particles
-    exposure: 1.15,         // bright peaks — lightning-on-water intensity
+    starSpeed: 0.018,         // rapid current — turbulent rotation
+    beatScale: 0.35,          // maximum beat impact — waves crashing
+    shockwaveOpacity: 0.35,   // intense ripples — storm on the lake
+    shockwaveScale: 25,       // massive wave spread
+    particleRate: 0.9,        // dense — spray, foam, churning particles
+    exposure: 1.15,           // bright peaks — lightning-on-water intensity
+    causticStrength: 1.0,     // maximum — vivid caustic networks
+    colorTemperature: -0.1,   // slightly cool/electric
   },
 };
 
@@ -379,7 +387,7 @@ export class SonareScene {
     this._createWaterSurface();
 
     // Water ripple pool — pre-allocate ring meshes on the water plane
-    this.ringGeometry = new THREE.RingGeometry(0.8, 1, 64);
+    this.ringGeometry = new THREE.RingGeometry(0.6, 1, 64); // thicker ring for visibility
     for (let i = 0; i < this._SHOCKWAVE_POOL_SIZE; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x4abcb6, transparent: true, opacity: 0,
@@ -836,13 +844,15 @@ export class SonareScene {
     this.waterSurface = new THREE.Mesh(geom, new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
-        uColor: { value: new THREE.Color(0.02, 0.07, 0.11) },       // deep dark teal (Miku undertone)
+        uColor: { value: new THREE.Color(0.01, 0.04, 0.08) },        // deep dark lake (distinct from sky)
         uRippleIntensity: { value: 0 },
         uCameraPos: { value: new THREE.Vector3() },
         uMoonDir: { value: this._moonDir.clone() },
-        uSkyColor: { value: new THREE.Color(0.07, 0.11, 0.16) },     // teal-warm sky (Miku warmth)
-        uFogColor: { value: new THREE.Color(0.04, 0.07, 0.11) },    // teal-warm horizon mist
+        uSkyColor: { value: new THREE.Color(0.12, 0.18, 0.28) },     // brighter sky reflection (Fresnel contrast)
+        uFogColor: { value: new THREE.Color(0.06, 0.10, 0.16) },     // brighter horizon mist
         uFogDensity: { value: 0.0004 },
+        uCausticStrength: { value: 0.5 },                             // mood-reactive caustic intensity
+        uColorTemperature: { value: 0.0 },                            // mood-reactive: -1 cool, +1 warm
       },
       vertexShader: waterVertexShader,
       fragmentShader: waterFragmentShader,
@@ -1348,7 +1358,7 @@ export class SonareScene {
   triggerBeat(intensity = 1, tapPos = null) {
     this.beatIntensity = Math.min(this.beatIntensity + intensity * this.moodParams.beatScale, 1.0);
     // Only downbeats get visible ripples — grab from pre-allocated pool
-    if (intensity > 0.7 && this.moodParams.shockwaveOpacity > 0.02) {
+    if (intensity > 0.5 && this.moodParams.shockwaveOpacity > 0.02) {
       // Water ripple color: blend song accent toward water-blue tint
       const rippleColor = this._tmpColor.copy(this.songAccent).lerp(this._tmpColor2.set(0x4abcb6), 0.5);
       const isBreathing = this._breathingSpace;
@@ -1851,6 +1861,10 @@ export class SonareScene {
       ).normalize();
       wu.uMoonDir.value.copy(this._moonDir);
 
+      // Mood-reactive water uniforms (smooth transitions between mood states)
+      wu.uCausticStrength.value = smoothDamp(wu.uCausticStrength.value, mp.causticStrength ?? 0.5, 2.0, delta);
+      wu.uColorTemperature.value = smoothDamp(wu.uColorTemperature.value, mp.colorTemperature ?? 0.0, 2.0, delta);
+
       // B2: Slightly soften water when lyrics active (keep it visually alive)
       this.waterSurface.material.opacity = smoothDamp(
         this.waterSurface.material.opacity ?? 1.0,
@@ -2040,7 +2054,8 @@ export class SonareScene {
       const s = 1 + eased * ring.userData.maxScale;
       ring.scale.set(s, s, 1);
       // Opacity fades smoothly with gentle tail
-      ring.material.opacity = (1 - p * p) * mp.shockwaveOpacity * (ring.userData.isTrailing ? 0.7 : 1.0);
+      // Graceful fade: (1-p)*(1-p*0.5) holds brightness longer before fading
+      ring.material.opacity = (1 - p) * (1 - p * 0.5) * mp.shockwaveOpacity * (ring.userData.isTrailing ? 0.7 : 1.0);
       // Keep horizontal on water plane (no lookAt camera)
       ring.rotation.x = -Math.PI / 2;
     }

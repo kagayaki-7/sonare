@@ -251,13 +251,15 @@ export const waterVertexShader = `
  */
 export const waterFragmentShader = `
   uniform float uTime;
-  uniform vec3 uColor;          // deep water base color
+  uniform vec3 uColor;            // deep water base color
   uniform float uRippleIntensity;
   uniform vec3 uCameraPos;
-  uniform vec3 uMoonDir;        // normalized moon light direction
-  uniform vec3 uSkyColor;       // dark blue-gray for fresnel reflection
-  uniform vec3 uFogColor;       // horizon mist color
-  uniform float uFogDensity;    // fog falloff
+  uniform vec3 uMoonDir;          // normalized moon light direction
+  uniform vec3 uSkyColor;         // sky reflection color (brighter for Fresnel contrast)
+  uniform vec3 uFogColor;         // horizon mist color
+  uniform float uFogDensity;      // fog falloff
+  uniform float uCausticStrength;  // mood-reactive: 0.3 (still) to 1.0 (stormy)
+  uniform float uColorTemperature; // mood-reactive: -1 cool blue to +1 warm teal
 
   varying vec2 vUv;
   varying vec3 vWorldPos;
@@ -272,9 +274,10 @@ export const waterFragmentShader = `
     float fresnel = pow(1.0 - max(dot(V, N), 0.0), 3.0);
     fresnel = clamp(fresnel, 0.0, 1.0);
 
-    // Deep water color — darken with distance from camera
+    // Deep water color — mood-reactive temperature shift
     float camDist = length(uCameraPos - vWorldPos);
-    vec3 deepColor = uColor * (1.0 - smoothstep(20.0, 120.0, camDist) * 0.5);
+    vec3 tempShift = vec3(uColorTemperature * 0.02, 0.0, -uColorTemperature * 0.015);
+    vec3 deepColor = (uColor + tempShift) * (1.0 - smoothstep(30.0, 150.0, camDist) * 0.35);
 
     // Blend between deep water (looking down) and sky reflection (grazing angle)
     vec3 waterCol = mix(deepColor, uSkyColor, fresnel * 0.85);
@@ -283,37 +286,30 @@ export const waterFragmentShader = `
     vec3 H = normalize(V + uMoonDir);
     float NdotH = max(dot(N, H), 0.0);
     float spec = pow(NdotH, 128.0);
-    // Moonlight is cool white-blue, shimmers with wave distortion
-    vec3 moonSpec = vec3(0.85, 0.9, 1.0) * spec * 1.2;
-    // Boost specular slightly when music is active for sparkle
-    moonSpec *= (1.0 + uRippleIntensity * 0.5);
+    vec3 moonSpec = vec3(0.85, 0.9, 1.0) * spec * 1.4;
+    moonSpec *= (1.0 + uRippleIntensity * 0.6);
     waterCol += moonSpec;
 
     // ── 2b. Sparkles — sharp specular highlights dancing across the surface ──
-    // High-frequency normal perturbation creates glittering moonlight points
     vec3 sparkleN = N;
-    sparkleN.x += sin(vWorldPos.x * 8.0 + uTime * 2.1) * cos(vWorldPos.z * 6.0 - uTime * 1.7) * 0.15;
-    sparkleN.z += cos(vWorldPos.x * 7.0 - uTime * 1.3) * sin(vWorldPos.z * 9.0 + uTime * 2.4) * 0.15;
+    sparkleN.x += sin(vWorldPos.x * 8.0 + uTime * 2.1) * cos(vWorldPos.z * 6.0 - uTime * 1.7) * 0.18;
+    sparkleN.z += cos(vWorldPos.x * 7.0 - uTime * 1.3) * sin(vWorldPos.z * 9.0 + uTime * 2.4) * 0.18;
     sparkleN = normalize(sparkleN);
     vec3 sparkleH = normalize(V + uMoonDir);
     float sparkleSpec = pow(max(dot(sparkleN, sparkleH), 0.0), 512.0);
-    // Sparkles are bright white dots, stronger when music is active
-    float sparkleIntensity = sparkleSpec * (1.5 + uRippleIntensity * 2.0);
-    // Fade sparkles with distance for natural falloff
-    sparkleIntensity *= (1.0 - smoothstep(25.0, 80.0, camDist));
+    float sparkleIntensity = sparkleSpec * (1.8 + uRippleIntensity * 2.5);
+    // Sparkles visible across much more of the lake
+    sparkleIntensity *= (1.0 - smoothstep(50.0, 120.0, camDist));
     waterCol += vec3(0.95, 0.97, 1.0) * sparkleIntensity;
 
     // ── 3. Subsurface scatter approximation ──
-    // Near crests (positive waveHeight), light passes through thin water
-    float sss = max(vWaveHeight, 0.0) * 0.3;
-    waterCol += vec3(0.05, 0.15, 0.2) * sss;
+    float sss = max(vWaveHeight, 0.0) * 0.4;
+    waterCol += vec3(0.08, 0.22, 0.30) * sss;
 
-    // ── 4. Voronoi caustic pattern (organic, high-quality) ──
-    // Hash function for pseudo-random cell positions
+    // ── 4. Voronoi caustic pattern (organic, mood-reactive) ──
     vec2 causticUV = vWorldPos.xz * 0.12;
     float caustic = 0.0;
 
-    // Two octaves of Voronoi for organic look
     for (int oct = 0; oct < 2; oct++) {
       float scale = (oct == 0) ? 1.0 : 2.2;
       float speed = (oct == 0) ? 0.3 : 0.45;
@@ -322,40 +318,36 @@ export const waterFragmentShader = `
       vec2 ip = floor(uv);
       vec2 fp = fract(uv);
 
-      float d1 = 8.0; // nearest distance
-      float d2 = 8.0; // second nearest
+      float d1 = 8.0;
+      float d2 = 8.0;
       for (int y = -1; y <= 1; y++) {
         for (int x = -1; x <= 1; x++) {
           vec2 neighbor = vec2(float(x), float(y));
-          // Animated cell centers
           vec2 cellId = ip + neighbor;
           vec2 cellRand = fract(sin(vec2(
             dot(cellId, vec2(127.1, 311.7)),
             dot(cellId, vec2(269.5, 183.3))
           )) * 43758.5453);
-          // Gentle drift so caustics swim
           vec2 cellPos = neighbor + cellRand + 0.3 * sin(uTime * 0.4 + 6.2831 * cellRand) - fp;
           float d = dot(cellPos, cellPos);
           if (d < d1) { d2 = d1; d1 = d; }
           else if (d < d2) { d2 = d; }
         }
       }
-      // F2 - F1 gives bright caustic lines between cells
       float voronoi = d2 - d1;
       caustic += pow(voronoi, 1.5) * weight;
     }
 
     caustic = pow(caustic, 2.0) * 3.0;
     caustic = clamp(caustic, 0.0, 1.0);
-    // Caustics fade with distance — visible mainly near/mid range
-    float causticFade = 1.0 - smoothstep(15.0, 70.0, camDist);
-    float causticStrength = caustic * 0.2 * causticFade * (0.5 + uRippleIntensity * 0.8);
-    waterCol += vec3(0.3, 0.6, 0.7) * causticStrength;
+    // Caustics visible further out, intensity driven by mood
+    float causticFade = 1.0 - smoothstep(20.0, 90.0, camDist);
+    float causticFinal = caustic * uCausticStrength * causticFade * (0.5 + uRippleIntensity * 0.8);
+    waterCol += vec3(0.35, 0.65, 0.80) * causticFinal;
 
     // ── 5. Edge foam ──
-    // Only the tallest wave crests get a subtle foam line
     float foam = smoothstep(0.4, 0.65, vWaveHeight) * causticFade;
-    waterCol = mix(waterCol, vec3(0.55, 0.65, 0.72), foam * 0.08);
+    waterCol = mix(waterCol, vec3(0.55, 0.65, 0.72), foam * 0.10);
 
     // ── 6. Distance fog / horizon mist ──
     float fogFactor = 1.0 - exp(-uFogDensity * camDist * camDist);
@@ -365,7 +357,7 @@ export const waterFragmentShader = `
     // Alpha: mostly opaque, soften at far edges of plane
     float distFromCenter = length(vWorldPos.xz) / 100.0;
     float edgeFade = 1.0 - smoothstep(0.85, 1.0, distFromCenter);
-    float alpha = (0.85 + fresnel * 0.1 + spec * 0.05) * edgeFade;
+    float alpha = (0.88 + fresnel * 0.08 + spec * 0.04) * edgeFade;
 
     gl_FragColor = vec4(waterCol, alpha);
   }

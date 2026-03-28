@@ -734,8 +734,7 @@ function updatePhraseDisplay(phrase, position) {
       phraseDisplay.dataset.phrase = phraseText;
       const announceEl = document.getElementById("lyric-announce");
       if (announceEl) announceEl.textContent = phraseText;
-      phraseChars = [];
-      phraseDisplay.classList.remove("fade-out-phrase", "phrase-enter", "dense-semantic", "density-high", "density-low");
+      phraseDisplay.classList.remove("fade-out-phrase", "phrase-enter", "phrase-exit", "dense-semantic", "density-high", "density-low");
       phraseSemanticCount = 0;
       activeSemanticGroupsTriggered.clear();
 
@@ -743,28 +742,16 @@ function updatePhraseDisplay(phrase, position) {
       showSubtitle(currentPhraseIndex);
       currentPhraseIndex++;
 
-      if (hadContent) {
-        phraseDisplay.classList.add("phrase-exit");
-        setTimeout(() => {
-          if (!phraseDisplay) return;
-          phraseDisplay.innerHTML = "";
-          phraseDisplay.classList.remove("phrase-exit");
-          buildPhraseChars(phrase);
-          phraseDisplay.classList.add("phrase-enter");
-          phraseDisplay.addEventListener("animationend", function onEnd() {
-            phraseDisplay.classList.remove("phrase-enter");
-            phraseDisplay.removeEventListener("animationend", onEnd);
-          });
-        }, 350);
-      } else {
-        phraseDisplay.innerHTML = "";
-        buildPhraseChars(phrase);
-        phraseDisplay.classList.add("phrase-enter");
-        phraseDisplay.addEventListener("animationend", function onEnd() {
-          phraseDisplay.classList.remove("phrase-enter");
-          phraseDisplay.removeEventListener("animationend", onEnd);
-        });
-      }
+      // Build new chars immediately — state machine must always have chars to iterate.
+      // CSS phrase-enter animation handles the visual fade-in. No setTimeout gap.
+      phraseChars = [];
+      phraseDisplay.innerHTML = "";
+      buildPhraseChars(phrase);
+      phraseDisplay.classList.add("phrase-enter");
+      phraseDisplay.addEventListener("animationend", function onEnd() {
+        phraseDisplay.classList.remove("phrase-enter");
+        phraseDisplay.removeEventListener("animationend", onEnd);
+      });
 
       // Phrase repetition
       if (seenPhrases.has(phraseText)) {
@@ -855,22 +842,22 @@ function updatePhraseDisplay(phrase, position) {
             // Stage 1: distant shimmer (ease-in-cubic for very slow start)
             const t1 = (tLinear / 0.5); // 0→1 over first half
             const t1e = t1 * t1 * t1;
-            opacity = 0.25 + t1e * 0.12; // 0.25→0.37
+            opacity = 0.28 + t1e * 0.20; // 0.28→0.48 (wider spread, visible on dark bg)
             scale = 1.0;
             glowClass = "char char-foreshadow" + isSemantic;
           } else if (timeUntilActive > 100) {
             // Stage 2: gathering breath (ease-in-out-quad)
             const t2 = 1 - ((timeUntilActive - 100) / 200); // 0→1
             const t2e = t2 < 0.5 ? 2 * t2 * t2 : 1 - (-2 * t2 + 2) * (-2 * t2 + 2) / 2;
-            opacity = 0.37 + t2e * 0.25; // 0.37→0.62
-            scale = 1.0 + t2e * 0.03; // 1.0→1.03
+            opacity = 0.48 + t2e * 0.24; // 0.48→0.72 (clear teal glow buildup)
+            scale = 1.0 + t2e * 0.04; // 1.0→1.04
             glowClass = "char char-anticipation" + isSemantic;
           } else {
             // Stage 3: imminent (ease-out — fast start, smooth landing)
             const t3 = 1 - (timeUntilActive / 100);
             const t3e = 1 - (1 - t3) * (1 - t3);
-            opacity = 0.62 + t3e * 0.28; // 0.62→0.90
-            scale = 1.03 + t3e * 0.04; // 1.03→1.07
+            opacity = 0.72 + t3e * 0.20; // 0.72→0.92 (nearly active brightness)
+            scale = 1.04 + t3e * 0.04; // 1.04→1.08
             glowClass = "char char-imminent" + isSemantic;
           }
 
