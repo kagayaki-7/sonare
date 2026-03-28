@@ -1362,8 +1362,7 @@ function buildSongCards() {
     card.style.setProperty("--card-i", i);
     card.innerHTML = `
       <div class="song-card-title">${song.title}</div>
-      <div class="song-card-desc">${t(`song.desc.${i}`)}</div>
-      <div class="song-card-artist">${song.artist}</div>
+      <div class="song-card-meta"><span class="song-card-artist">${song.artist}</span><span class="song-card-desc">${t(`song.desc.${i}`)}</span></div>
     `;
     card.addEventListener("click", () => loadSong(i));
     card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); loadSong(i); } });

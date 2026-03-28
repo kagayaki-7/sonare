@@ -210,7 +210,7 @@ html, body {
 /* Tufte song cards — minimal chrome, content-first, left accent border only */
 .song-card {
   --card-accent: rgba(57,197,187,0.5);
-  padding: clamp(0.9rem, 2.2vh, 1.3rem) clamp(1rem, 2.5vw, 1.6rem);
+  padding: clamp(0.7rem, 1.8vh, 1rem) clamp(1rem, 2.5vw, 1.6rem);
   padding-left: clamp(1.2rem, 3vw, 1.8rem);
   border: none;
   border-left: 2px solid rgba(255,255,255,0.06);
@@ -253,18 +253,14 @@ html, body {
   font-weight: 400;
   letter-spacing: 0.02em;
   color: rgba(255,255,255,0.9);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.2rem;
   line-height: 1.4;
 }
 
-.song-card .song-card-desc {
-  font-family: "Inter", sans-serif;
-  font-size: clamp(0.6rem, 1.2vw, 0.72rem);
-  font-weight: 300;
-  color: rgba(255,255,255,0.28);
-  letter-spacing: 0.04em;
-  margin-bottom: 0.25rem;
-  font-style: italic;
+.song-card .song-card-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
 }
 
 .song-card .song-card-artist {
@@ -273,6 +269,15 @@ html, body {
   font-weight: 300;
   color: rgba(255,255,255,0.42);
   letter-spacing: 0.02em;
+}
+
+.song-card .song-card-desc {
+  font-family: "Inter", sans-serif;
+  font-size: clamp(0.55rem, 1.1vw, 0.66rem);
+  font-weight: 300;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 0.03em;
+  font-style: italic;
 }
 
 /* Badge hidden — Tufte: maximize data-ink ratio */
