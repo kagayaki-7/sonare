@@ -68,7 +68,7 @@ let lastChordName = "";
 let lastWordIndex = -1;
 /** @type {Array<{el: HTMLSpanElement, startTime: number, endTime: number, semanticColor?: string, wordDuration?: number}>} */
 let phraseChars = [];
-let currentMoodClass = "mood-still";
+let currentMoodClass = "mood-gentle";
 let _smoothGlow = 0;    // smoothed glow radius (CSS property)
 let _smoothScale = 0;   // smoothed active scale (CSS property)
 /** @type {Set<string>} Track phrase repetition for visual callbacks */

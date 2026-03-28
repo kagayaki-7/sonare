@@ -446,7 +446,7 @@ html, body {
   z-index: 15;
   font-family: "Zen Maru Gothic", "Hiragino Kaku Gothic Pro", "Yu Gothic", "Meiryo", sans-serif;
   font-size: clamp(1.6rem, 5vw, 3.2rem);
-  font-weight: 300;
+  font-weight: var(--mood-weight, 300);
   letter-spacing: var(--mood-spacing, 0.08em);
   text-align: center;
   max-width: 85vw;
@@ -567,7 +567,7 @@ html, body {
 
 /* ── ACTIVE — the character being sung RIGHT NOW ── */
 #phrase-display .char.active {
-  animation: none; /* cancel entrance fill — let active styles take precedence */
+  animation: none;
   opacity: 1;
   color: #fff;
   transform: scale(var(--active-scale, 1.12)) translateY(-2px);
@@ -578,8 +578,7 @@ html, body {
     0 0 calc(var(--glow-radius, 25px) * 2) rgba(57,197,187,0.4),
     0 0 calc(var(--glow-radius, 25px) * 3) rgba(233,145,207,0.2);
   -webkit-text-stroke: 0.8px rgba(0,10,20,0.5);
-  filter: brightness(1.15);
-  /* Snap in fast from imminent state */
+  filter: brightness(var(--active-brightness, 1.15));
   transition: opacity 0.04s ease-out, transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.06s ease-out, text-shadow 0.18s ease-out, filter 0.08s ease-out;
 }
 
@@ -639,18 +638,14 @@ html, body {
   }
 }
 
-/* ── SUNG — already voiced, warm teal trail with slow gorgeous decay ── */
+/* ── SUNG — already voiced, warm trail with slow gorgeous decay ── */
 #phrase-display .char.sung {
-  animation: none; /* cancel entrance fill — sung opacity must take precedence */
-  opacity: 0.88;
-  color: rgba(57,197,187,0.92);
-  text-shadow:
-    0 0 2px rgba(0,10,20,0.5),
-    0 0 8px rgba(57,197,187,0.3),
-    0 0 18px rgba(57,197,187,0.1);
+  animation: none;
+  opacity: var(--sung-opacity, 0.88);
+  color: var(--sung-color, rgba(57,197,187,0.92));
+  text-shadow: 0 0 2px rgba(0,10,20,0.5), var(--sung-glow, 0 0 8px rgba(57,197,187,0.3));
   transform: scale(1.0);
   -webkit-text-stroke: 0.5px rgba(0,10,20,0.25);
-  /* Long graceful decay — the glow lingers like ripples fading on water */
   transition: opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.6s ease-out, text-shadow 0.8s ease-out, filter 0.5s ease-out;
 }
 
@@ -779,158 +774,64 @@ html, body {
               0 0 16px color-mix(in srgb, var(--word-semantic-color, var(--cat-miku)) 50%, transparent);
 }
 
-/* ── Mood-responsive lyric styling (water states) ──
-   The lyrics morph to reflect the lake's emotional state */
+/* ── Mood-responsive lyric styling ──
+   Single source of truth: moods set CSS custom properties on #phrase-display,
+   .char.active and .char.sung use those variables. No specificity wars. */
 
-/* Still: glass-still lake — wide spacing, feather-light, clear reflections */
+#phrase-display {
+  /* Mood-variable defaults (overridden by mood classes below) */
+  --mood-weight: 300;
+  --mood-spacing: 0.08em;
+  --sung-color: rgba(57, 197, 187, 0.92);
+  --sung-glow: 0 0 8px rgba(57, 197, 187, 0.3);
+  --sung-opacity: 0.88;
+  --active-brightness: 1.15;
+}
+
+/* Still: glass-still lake — feather-light, wide spacing */
 #phrase-display.mood-still {
-  font-weight: 200;
-  letter-spacing: 0.14em;
-}
-#phrase-display.mood-still .char.active {
-  text-shadow:
-    0 0 15px rgba(180,210,240,0.9),
-    0 0 40px rgba(130,180,230,0.5),
-    0 0 70px rgba(100,150,220,0.25);
-}
-#phrase-display.mood-still .char.sung {
-  color: rgba(160,200,235,0.88);
-  text-shadow: 0 0 10px rgba(130,180,230,0.25);
+  --mood-weight: 200; --mood-spacing: 0.14em;
+  --sung-color: rgba(160, 200, 235, 0.88);
+  --sung-glow: 0 0 10px rgba(130, 180, 230, 0.25);
+  --sung-opacity: 0.86; --active-brightness: 1.1;
 }
 
-/* Gentle: soft ripples, warm underwater glow — tighter, warmer tones */
+/* Gentle: soft ripples — warm, balanced */
 #phrase-display.mood-gentle {
-  font-weight: 300;
-  letter-spacing: 0.06em;
-}
-#phrase-display.mood-gentle .char.active {
-  text-shadow:
-    0 0 12px rgba(255,255,255,0.9),
-    0 0 30px rgba(120,200,210,0.7),
-    0 0 60px rgba(180,220,200,0.35);
-}
-#phrase-display.mood-gentle .char.sung {
-  color: rgba(140,210,200,0.88);
-  text-shadow: 0 0 8px rgba(100,190,185,0.25);
+  --mood-weight: 300; --mood-spacing: 0.06em;
+  --sung-color: rgba(140, 210, 200, 0.88);
+  --sung-glow: 0 0 8px rgba(100, 190, 185, 0.25);
+  --sung-opacity: 0.88; --active-brightness: 1.15;
 }
 
-/* Flowing: stronger currents, visible waves — crisp, energized */
+/* Flowing: stronger currents — energized */
 #phrase-display.mood-flowing {
-  font-weight: 400;
-  letter-spacing: 0.04em;
-}
-#phrase-display.mood-flowing .char.active {
-  transform: scale(1.1) translateY(-1px);
-  text-shadow:
-    0 0 8px rgba(255,255,255,1),
-    0 0 20px rgba(57,197,187,0.9),
-    0 0 40px rgba(100,200,255,0.4);
-}
-#phrase-display.mood-flowing .char.sung {
-  color: rgba(80,200,220,0.9);
-  text-shadow: 0 0 6px rgba(57,197,187,0.35);
+  --mood-weight: 400; --mood-spacing: 0.04em;
+  --sung-color: rgba(80, 200, 220, 0.9);
+  --sung-glow: 0 0 6px rgba(57, 197, 187, 0.35);
+  --sung-opacity: 0.88; --active-brightness: 1.18;
 }
 
-/* Stormy: turbulent water, foam-like bloom — maximum presence, white-water intensity */
+/* Stormy: turbulent water — maximum intensity */
 #phrase-display.mood-stormy {
-  font-weight: 500;
-  letter-spacing: 0.10em;
-}
-#phrase-display.mood-stormy .char.active {
-  transform: scale(1.18) translateY(-3px);
-  text-shadow:
-    0 0 15px rgba(255,255,255,1),
-    0 0 30px rgba(200,230,255,0.8),
-    0 0 60px rgba(140,200,230,0.5),
-    0 0 100px rgba(57,197,187,0.3);
-  filter: brightness(1.2);
-}
-#phrase-display.mood-stormy .char.sung {
-  color: rgba(180,220,240,0.9);
-  text-shadow: 0 0 10px rgba(140,200,230,0.3);
+  --mood-weight: 500; --mood-spacing: 0.10em;
+  --sung-color: rgba(180, 220, 240, 0.9);
+  --sung-glow: 0 0 10px rgba(140, 200, 230, 0.3);
+  --sung-opacity: 0.90; --active-brightness: 1.25;
 }
 
-/* ── Water caustic shimmer on sung text (flowing/stormy only) ──
-   Simulates dappled light refracted through moving water.
-   Uses background-clip: text with a slow-moving radial gradient. */
-@keyframes caustic-shimmer {
-  0%   { background-position: 0% 0%; }
-  25%  { background-position: 100% 30%; }
-  50%  { background-position: 40% 100%; }
-  75%  { background-position: 80% 10%; }
-  100% { background-position: 0% 0%; }
-}
-
-#phrase-display.mood-flowing .char.sung,
-#phrase-display.mood-stormy .char.sung {
-  background-image:
-    radial-gradient(ellipse 120% 80% at 30% 40%,
-      rgba(255,255,255,0.18) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 120% at 70% 60%,
-      rgba(180,230,255,0.12) 0%, transparent 45%),
-    radial-gradient(ellipse 60% 60% at 50% 50%,
-      rgba(57,197,187,0.10) 0%, transparent 55%);
-  background-size: 300% 300%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  animation: caustic-shimmer 10s ease-in-out infinite;
-  animation-delay: calc(var(--char-i, 0) * -0.6s);
-}
-
-/* Stormy gets a slightly stronger caustic effect */
-#phrase-display.mood-stormy .char.sung {
-  background-image:
-    radial-gradient(ellipse 120% 80% at 30% 40%,
-      rgba(255,255,255,0.24) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 120% at 70% 60%,
-      rgba(180,230,255,0.16) 0%, transparent 45%),
-    radial-gradient(ellipse 60% 60% at 50% 50%,
-      rgba(57,197,187,0.14) 0%, transparent 55%);
-  background-size: 300% 300%;
-  animation-duration: 8s;
-}
-
-/* ── Chorus amplification ── */
+/* Chorus: heightened presence */
 #phrase-display.chorus {
-  font-weight: 500;
-  letter-spacing: 0.12em;
+  --mood-weight: 500;
+  --mood-spacing: 0.12em;
+  --sung-opacity: 0.92;
+  --active-brightness: 1.2;
 }
 
-#phrase-display.chorus .char {
-  animation: chorus-wave 2s ease-in-out infinite;
-  animation-delay: calc(var(--char-i, 0) * 0.08s);
-}
-
-#phrase-display.chorus .char.active {
-  transform: scale(calc(var(--active-scale, 1.12) * 1.06)) translateY(-3px);
-  text-shadow:
-    0 0 15px rgba(255,255,255,1),
-    0 0 35px rgba(233,145,207,0.9),
-    0 0 60px rgba(255,215,0,0.5),
-    0 0 100px rgba(57,197,187,0.3);
-  filter: brightness(1.2);
-  animation: none; /* active char uses its own transform */
-}
-
-#phrase-display.chorus .char.sung {
-  opacity: 0.92;
-  text-shadow: 0 0 12px rgba(233,145,207,0.35);
-}
-
-@keyframes chorus-wave {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-
-/* ── Phrase repetition echo — warm glow for returning lyrics ── */
-#phrase-display.phrase-echo .char.sung {
-  text-shadow: 0 0 12px rgba(255, 215, 0, 0.3), 0 0 25px rgba(255, 180, 100, 0.15);
-}
-#phrase-display.phrase-echo .char.active {
-  text-shadow:
-    0 0 12px rgba(255, 255, 255, 0.9),
-    0 0 var(--glow-radius, 25px) rgba(255, 215, 0, 0.7),
-    0 0 calc(var(--glow-radius, 25px) * 2) rgba(255, 180, 100, 0.35);
+/* Phrase echo: warm gold tint for returning lyrics */
+#phrase-display.phrase-echo {
+  --sung-color: rgba(220, 200, 140, 0.88);
+  --sung-glow: 0 0 12px rgba(255, 215, 0, 0.25);
 }
 
 /* ── Word-level timing effects ── */
@@ -1241,36 +1142,27 @@ html, body {
    Low density (<0.8 wps): sparse, breathing — softer, more contemplative. */
 
 /* High density: characters feel compressed and energized */
-#phrase-display.density-high .char {
-  letter-spacing: -0.01em;
+/* Density overrides — only adjust transition speed and sung opacity via variables */
+#phrase-display.density-high {
+  --sung-opacity: 0.72;
+  --mood-spacing: -0.01em;
 }
 #phrase-display.density-high .char.active {
-  filter: brightness(1.2) contrast(1.1);
   transition: opacity 0.08s ease-out, transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.06s ease-out, text-shadow 0.12s ease-out, filter 0.08s ease-out;
 }
 #phrase-display.density-high .char.sung {
-  /* Fast lyrics — sung chars fade quicker to keep visual focus forward */
-  opacity: 0.7;
   transition: opacity 0.2s ease-out, color 0.25s ease-out, text-shadow 0.3s ease-out;
 }
 
-/* Low density: characters breathe — wider, softer, more space */
-#phrase-display.density-low .char {
-  letter-spacing: 0.04em;
+/* Low density: characters breathe — wider, softer */
+#phrase-display.density-low {
+  --sung-opacity: 0.92;
+  --mood-spacing: 0.04em;
 }
 #phrase-display.density-low .char.active {
-  /* Slower, more luxurious glow bloom */
   transition: opacity 0.12s ease-out, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s ease-out, text-shadow 0.4s ease-out, filter 0.25s ease-out;
-  text-shadow:
-    0 0 2px rgba(0,10,20,0.8),
-    0 0 14px rgba(255,255,255,0.85),
-    0 0 30px rgba(57,197,187,0.7),
-    0 0 60px rgba(57,197,187,0.35),
-    0 0 90px rgba(233,145,207,0.15);
 }
 #phrase-display.density-low .char.sung {
-  /* Sparse lyrics — sung chars linger with more presence */
-  opacity: 0.92;
   transition: opacity 0.5s ease-out, color 0.6s ease-out, text-shadow 0.7s ease-out;
 }
 
@@ -1480,11 +1372,6 @@ body[data-subtitles="off"] .subtitle-english {
   #phrase-display.dense-semantic { animation: none; }
   #phrase-display.density-high .char.active,
   #phrase-display.density-low .char.active { transition: none; }
-  #phrase-display.chorus .char.active { transform: none; }
-  #phrase-display.mood-flowing .char.sung,
-  #phrase-display.mood-stormy .char.sung {
-    animation: none;
-    background-image: none;
   }
 }
 
