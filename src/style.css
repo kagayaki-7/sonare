@@ -137,34 +137,72 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: safe center;
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 75%, rgba(57,197,187,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at center, rgba(5,13,24,0.92) 0%, rgba(2,5,12,0.97) 100%);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
+  background: radial-gradient(ellipse at 50% 55%, rgba(8,18,32,0.90) 0%, rgba(2,5,12,0.97) 100%);
   z-index: 90;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 3rem 0 3rem;
 }
 
-/* Animated water ripple background */
+/* ── Top-down water ripple rings ──
+   Concentric circles expanding from center, like looking straight down at a lake */
 #song-select::before {
   content: '';
   position: absolute;
-  inset: 0;
+  /* Center the ripple origin slightly below center for perspective */
+  left: 50%;
+  top: 55%;
+  width: 180vmax;
+  height: 180vmax;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
   background:
-    radial-gradient(ellipse 40% 30% at 25% 65%, rgba(57,197,187,0.04) 0%, transparent 70%),
-    radial-gradient(ellipse 35% 25% at 75% 35%, rgba(130,170,220,0.04) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 40% at 50% 80%, rgba(57,197,187,0.03) 0%, transparent 60%);
-  animation: water-bg-drift 12s ease-in-out infinite alternate;
+    /* Multiple concentric ring gradients at different scales */
+    repeating-radial-gradient(
+      circle at center,
+      transparent 0px,
+      transparent 38px,
+      rgba(57,197,187,0.04) 40px,
+      rgba(57,197,187,0.07) 42px,
+      transparent 44px,
+      transparent 82px
+    );
+  animation: ripple-expand 8s linear infinite;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.7;
 }
 
-@keyframes water-bg-drift {
-  0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
-  50% { transform: translate(-10px, 5px) scale(1.03); opacity: 1; }
-  100% { transform: translate(8px, -3px) scale(0.98); opacity: 0.8; }
+/* Second ripple layer — offset timing, slightly different spacing for organic feel */
+#song-select::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 180vmax;
+  height: 180vmax;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle at center,
+      transparent 0px,
+      transparent 55px,
+      rgba(100,160,220,0.03) 57px,
+      rgba(100,160,220,0.05) 59px,
+      transparent 61px,
+      transparent 116px
+    );
+  animation: ripple-expand 12s linear infinite;
+  animation-delay: -4s;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+@keyframes ripple-expand {
+  from { transform: translate(-50%, -50%) scale(0.3); opacity: 0.8; }
+  to   { transform: translate(-50%, -50%) scale(1.2); opacity: 0.2; }
 }
 
 /* App title — Tufte: clear hierarchy through weight and spacing, not decoration */
@@ -494,6 +532,7 @@ html, body {
 
 /* Stage 1: Distant foreshadow (600-300ms before) — barely perceptible shimmer */
 #phrase-display .char.char-foreshadow {
+  animation: none; /* cancel entrance fill */
   color: rgba(225,240,250,0.58);
   text-shadow:
     0 0 3px rgba(0,10,20,0.5),
@@ -503,6 +542,7 @@ html, body {
 
 /* Stage 2: Anticipation (300-100ms before) — clear gathering glow */
 #phrase-display .char.char-anticipation {
+  animation: none;
   color: rgba(235,245,255,0.72);
   text-shadow:
     0 0 3px rgba(0,10,20,0.5),
@@ -514,6 +554,7 @@ html, body {
 
 /* Stage 3: Imminent (100-0ms before) — nearly there, bright pre-flash */
 #phrase-display .char.char-imminent {
+  animation: none;
   color: rgba(245,250,255,0.88);
   text-shadow:
     0 0 2px rgba(0,10,20,0.6),
@@ -526,6 +567,7 @@ html, body {
 
 /* ── ACTIVE — the character being sung RIGHT NOW ── */
 #phrase-display .char.active {
+  animation: none; /* cancel entrance fill — let active styles take precedence */
   opacity: 1;
   color: #fff;
   transform: scale(var(--active-scale, 1.12)) translateY(-2px);
@@ -599,6 +641,7 @@ html, body {
 
 /* ── SUNG — already voiced, warm teal trail with slow gorgeous decay ── */
 #phrase-display .char.sung {
+  animation: none; /* cancel entrance fill — sung opacity must take precedence */
   opacity: 0.88;
   color: rgba(57,197,187,0.92);
   text-shadow:
